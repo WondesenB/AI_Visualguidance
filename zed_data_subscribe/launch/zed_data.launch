@@ -1,0 +1,7 @@
+<launch>
+
+   <!-- zed data subscriber node -->
+   <node pkg="zed_data_subscribe" name="zed_data_subscribe" type="zed_data_sub" output="screen">
+   </node>
+
+</launch>

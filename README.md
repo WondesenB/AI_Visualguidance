@@ -5,7 +5,8 @@
 	mkdir -p ~/catkin_ws/src
 	cd ~/catkin_ws/src
 	git clone https://github.com/usdl2019/AI_Visualguidance.git 
-	cd ~/catkin_ws
+	chmod +x AI_Visualguidance/zed-ros-wrapper/zed_wrapper/cfg/Zed.cfg
+        cd ~/catkin_ws
 	catkin_make
 	source devel/setup.bash
 	roslaunch zed_wrapper zed.launch

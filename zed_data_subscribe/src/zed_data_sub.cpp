@@ -7,6 +7,7 @@
 #include <image_transport/image_transport.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <nav_msgs/Odometry.h>
+<<<<<<< HEAD
 #include <sensor_msgs/PointCloud2.h>
 // darknet_ros_msgs
 #include <darknet_ros_msgs/BoundingBoxes.h>
@@ -55,6 +56,19 @@ void boundingbox_callback(const darknet_ros_msgs::BoundingBoxes::ConstPtr&  msg)
 
 }
 
+=======
+
+#include "tf2/LinearMath/Quaternion.h"
+#include "tf2/LinearMath/Matrix3x3.h"
+
+#include <string>
+
+#define RAD2DEG 57.295779513
+
+/**
+ * Subscriber callbacks
+ */
+>>>>>>> 1b7f380c60f5538edbf8c945e5b8c519830c2bcb
 void camera_depth_callback(const sensor_msgs::Image::ConstPtr& msg)
 {
     // Get a pointer to the depth values casting the data
@@ -62,8 +76,13 @@ void camera_depth_callback(const sensor_msgs::Image::ConstPtr& msg)
     float* depths = (float*)(&msg->data[0]);
 
     // Image coordinates of the center pixel
+<<<<<<< HEAD
      u = msg->width / 2;
      v = msg->height / 2;
+=======
+    int u = msg->width / 2;
+    int v = msg->height / 2;
+>>>>>>> 1b7f380c60f5538edbf8c945e5b8c519830c2bcb
 
     // Linear index of the center pixel
     int centerIdx = u + msg->width * v;
@@ -94,18 +113,31 @@ void odomCallback(const nav_msgs::Odometry::ConstPtr& msg) {
     m.getRPY(roll, pitch, yaw);
 
     // Output the measure
+<<<<<<< HEAD
     // ROS_INFO("Received odom in '%s' frame : X: %.2f Y: %.2f Z: %.2f - R: %.2f P: %.2f Y: %.2f",
     //          msg->header.frame_id.c_str(),
     //          tx, ty, tz,
     //          roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+=======
+    ROS_INFO("Received odom in '%s' frame : X: %.2f Y: %.2f Z: %.2f - R: %.2f P: %.2f Y: %.2f",
+             msg->header.frame_id.c_str(),
+             tx, ty, tz,
+             roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+>>>>>>> 1b7f380c60f5538edbf8c945e5b8c519830c2bcb
 }
 
 void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
 
     // Camera position in map frame
+<<<<<<< HEAD
      tx = msg->pose.position.x;
      ty = msg->pose.position.y;
      tz = msg->pose.position.z;
+=======
+    double tx = msg->pose.position.x;
+    double ty = msg->pose.position.y;
+    double tz = msg->pose.position.z;
+>>>>>>> 1b7f380c60f5538edbf8c945e5b8c519830c2bcb
 
     // Orientation quaternion
     tf2::Quaternion q(
@@ -118,10 +150,17 @@ void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
     tf2::Matrix3x3 m(q);
 
     // Roll Pitch and Yaw from rotation matrix
+<<<<<<< HEAD
     
     m.getRPY(roll, pitch, yaw);
 
    // Output the measure
+=======
+    double roll, pitch, yaw;
+    m.getRPY(roll, pitch, yaw);
+
+    // Output the measure
+>>>>>>> 1b7f380c60f5538edbf8c945e5b8c519830c2bcb
     ROS_INFO("Received pose in '%s' frame : X: %.2f Y: %.2f Z: %.2f - R: %.2f P: %.2f Y: %.2f",
              msg->header.frame_id.c_str(),
              tx, ty, tz,
@@ -129,6 +168,7 @@ void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
 }
 
 void imageRightRectifiedCallback(const sensor_msgs::Image::ConstPtr& msg) {
+<<<<<<< HEAD
     // ROS_INFO("Right Rectified image received from ZED - Size: %dx%d", msg->width, msg->height);
 }
 
@@ -155,6 +195,13 @@ void pixelTo3DXYZ_callback(const sensor_msgs::PointCloud2 pointCL)
    
     ROS_INFO("XYZ = (%f,%f,%f)",X,Y,Z);
  
+=======
+    ROS_INFO("Right Rectified image received from ZED - Size: %dx%d", msg->width, msg->height);
+}
+
+void imageLeftRectifiedCallback(const sensor_msgs::Image::ConstPtr& msg) {
+    ROS_INFO("Left Rectified image received from ZED - Size: %dx%d", msg->width, msg->height);
+>>>>>>> 1b7f380c60f5538edbf8c945e5b8c519830c2bcb
 }
 
 int main(int argc, char **argv)
@@ -165,6 +212,7 @@ int main(int argc, char **argv)
 
 
   ros::NodeHandle n;
+<<<<<<< HEAD
   ros::Subscriber sub               = n.subscribe("/zed/depth/depth_registered", 10, camera_depth_callback);
   ros::Subscriber subpcl            = n.subscribe("/zed/point_cloud/cloud_registered", 10, pixelTo3DXYZ_callback);
   ros::Subscriber subcenter         = n.subscribe("/darknet_ros/bounding_boxes", 10, boundingbox_callback); // checking data subscription from objected detector package
@@ -199,6 +247,18 @@ while(ros::ok() )
  rate.sleep();
 
 }
+=======
+
+
+  ros::Subscriber sub        = n.subscribe("/zed/depth/depth_registered", 10, camera_depth_callback);
+  ros::Subscriber subOdom    = n.subscribe("/zed/odom", 10, odomCallback);
+  ros::Subscriber subPose    = n.subscribe("/zed/pose", 10, poseCallback);
+  ros::Subscriber subRightRectified = n.subscribe("/zed/right/image_rect_color", 10,
+                                      imageRightRectifiedCallback);
+  ros::Subscriber subLeftRectified  = n.subscribe("/zed/left/image_rect_color", 10,
+                                      imageLeftRectifiedCallback);
+  ros::spin();
+>>>>>>> 1b7f380c60f5538edbf8c945e5b8c519830c2bcb
 
 
   return 0;

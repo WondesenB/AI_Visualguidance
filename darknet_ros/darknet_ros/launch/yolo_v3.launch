@@ -3,8 +3,8 @@
 <launch>
   
   <!-- modify the following *.yaml file name according to custom configuration -->
-  <!-- <arg name="network_param_file"         default="$(find darknet_ros)/config/yolov3.yaml"/> -->
-  <arg name="network_param_file"         default="$(find darknet_ros)/config/yolov3_custom.yaml"/>
+    <arg name="network_param_file"         default="$(find darknet_ros)/config/yolov3.yaml"/>
+  <!--  <arg name="network_param_file"         default="$(find darknet_ros)/config/yolov3_custom.yaml"/> -->
 
   <!-- Include main launch file -->
   <include file="$(find darknet_ros)/launch/darknet_ros.launch">

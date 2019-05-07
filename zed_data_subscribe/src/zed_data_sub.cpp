@@ -7,17 +7,54 @@
 #include <image_transport/image_transport.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <nav_msgs/Odometry.h>
+#include <sensor_msgs/PointCloud2.h>
+// darknet_ros_msgs
+#include <darknet_ros_msgs/BoundingBoxes.h>
+#include <darknet_ros_msgs/BoundingBox.h>
 
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2/LinearMath/Matrix3x3.h"
+#include <tf/transform_datatypes.h>
 
 #include <string>
+#include "std_msgs/String.h"
+#include <cstddef>
 
 #define RAD2DEG 57.295779513
-
+//string bado= "(null)";
 /**
  * Subscriber callbacks
  */
+ int u;
+ int v;
+ double tx ;
+ double ty ;
+ double tz ;
+double roll, pitch, yaw;
+void boundingbox_callback(const darknet_ros_msgs::BoundingBoxes::ConstPtr&  msg)
+{
+    int  i = 0;
+   while(i < msg->bounding_boxes[0].num )
+   {
+
+   
+     if (msg->bounding_boxes[i].Class.c_str() == "")
+     {
+       i = 0;
+       continue;
+     }
+     else
+     {
+      float  X_c = (msg->bounding_boxes[i].xmin + msg->bounding_boxes[i].xmax )/2;
+      float  Y_c = (msg->bounding_boxes[i].ymin + msg->bounding_boxes[i].ymax )/2;
+      ROS_INFO("detected object  %s %d center is at X_c = %.2f , Y_c = %.2f ,total detected = %d ",msg->bounding_boxes[i].Class.c_str(),i,X_c,Y_c,msg->bounding_boxes[0].num );     
+     }
+
+    i++;
+   }
+
+}
+
 void camera_depth_callback(const sensor_msgs::Image::ConstPtr& msg)
 {
     // Get a pointer to the depth values casting the data
@@ -25,8 +62,8 @@ void camera_depth_callback(const sensor_msgs::Image::ConstPtr& msg)
     float* depths = (float*)(&msg->data[0]);
 
     // Image coordinates of the center pixel
-    int u = msg->width / 2;
-    int v = msg->height / 2;
+     u = msg->width / 2;
+     v = msg->height / 2;
 
     // Linear index of the center pixel
     int centerIdx = u + msg->width * v;
@@ -57,18 +94,18 @@ void odomCallback(const nav_msgs::Odometry::ConstPtr& msg) {
     m.getRPY(roll, pitch, yaw);
 
     // Output the measure
-    ROS_INFO("Received odom in '%s' frame : X: %.2f Y: %.2f Z: %.2f - R: %.2f P: %.2f Y: %.2f",
-             msg->header.frame_id.c_str(),
-             tx, ty, tz,
-             roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+    // ROS_INFO("Received odom in '%s' frame : X: %.2f Y: %.2f Z: %.2f - R: %.2f P: %.2f Y: %.2f",
+    //          msg->header.frame_id.c_str(),
+    //          tx, ty, tz,
+    //          roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
 }
 
 void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
 
     // Camera position in map frame
-    double tx = msg->pose.position.x;
-    double ty = msg->pose.position.y;
-    double tz = msg->pose.position.z;
+     tx = msg->pose.position.x;
+     ty = msg->pose.position.y;
+     tz = msg->pose.position.z;
 
     // Orientation quaternion
     tf2::Quaternion q(
@@ -81,10 +118,10 @@ void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
     tf2::Matrix3x3 m(q);
 
     // Roll Pitch and Yaw from rotation matrix
-    double roll, pitch, yaw;
+    
     m.getRPY(roll, pitch, yaw);
 
-    // Output the measure
+   // Output the measure
     ROS_INFO("Received pose in '%s' frame : X: %.2f Y: %.2f Z: %.2f - R: %.2f P: %.2f Y: %.2f",
              msg->header.frame_id.c_str(),
              tx, ty, tz,
@@ -92,11 +129,32 @@ void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
 }
 
 void imageRightRectifiedCallback(const sensor_msgs::Image::ConstPtr& msg) {
-    ROS_INFO("Right Rectified image received from ZED - Size: %dx%d", msg->width, msg->height);
+    // ROS_INFO("Right Rectified image received from ZED - Size: %dx%d", msg->width, msg->height);
 }
 
 void imageLeftRectifiedCallback(const sensor_msgs::Image::ConstPtr& msg) {
-    ROS_INFO("Left Rectified image received from ZED - Size: %dx%d", msg->width, msg->height);
+    // ROS_INFO("Left Rectified image received from ZED - Size: %dx%d", msg->width, msg->height);
+}
+
+void pixelTo3DXYZ_callback(const sensor_msgs::PointCloud2 pointCL)
+{
+
+
+    int arrayPosition = (v-300)*pointCL.row_step + (u-400)*pointCL.point_step;
+    int arrayPosX     = arrayPosition + pointCL.fields[0].offset; // X has an offset of 0
+    int arrayPosY     = arrayPosition + pointCL.fields[1].offset; // Y has an offset of 4
+    int arrayPosZ     = arrayPosition + pointCL.fields[2].offset; // Z has an offset of 8
+ 
+    float X ;
+    float Y ;
+    float Z ;
+ 
+    memcpy(&X, &pointCL.data[arrayPosX], sizeof(float));
+    memcpy(&Y, &pointCL.data[arrayPosY], sizeof(float));
+    memcpy(&Z, &pointCL.data[arrayPosZ], sizeof(float));
+   
+    ROS_INFO("XYZ = (%f,%f,%f)",X,Y,Z);
+ 
 }
 
 int main(int argc, char **argv)
@@ -107,16 +165,40 @@ int main(int argc, char **argv)
 
 
   ros::NodeHandle n;
-
-
-  ros::Subscriber sub        = n.subscribe("/zed/depth/depth_registered", 10, camera_depth_callback);
-  ros::Subscriber subOdom    = n.subscribe("/zed/odom", 10, odomCallback);
-  ros::Subscriber subPose    = n.subscribe("/zed/pose", 10, poseCallback);
+  ros::Subscriber sub               = n.subscribe("/zed/depth/depth_registered", 10, camera_depth_callback);
+  ros::Subscriber subpcl            = n.subscribe("/zed/point_cloud/cloud_registered", 10, pixelTo3DXYZ_callback);
+  ros::Subscriber subcenter         = n.subscribe("/darknet_ros/bounding_boxes", 10, boundingbox_callback); // checking data subscription from objected detector package
+  ros::Subscriber subOdom           = n.subscribe("/zed/odom", 10, odomCallback);
+  ros::Subscriber subPose           = n.subscribe("/zed/pose", 10, poseCallback);
   ros::Subscriber subRightRectified = n.subscribe("/zed/right/image_rect_color", 10,
-                                      imageRightRectifiedCallback);
+                                     imageRightRectifiedCallback);
   ros::Subscriber subLeftRectified  = n.subscribe("/zed/left/image_rect_color", 10,
-                                      imageLeftRectifiedCallback);
-  ros::spin();
+                                     imageLeftRectifiedCallback);
+
+  ros::Publisher local_pos_pub = n.advertise<geometry_msgs::PoseStamped>
+            ("/mavros/vision_pose/pose", 100); //mocap vision_pose /mavros/vision_pose/pose
+
+ ros::Rate rate(70.0);  
+ geometry_msgs::PoseStamped loc_pos;
+ ros::Time last_request = ros::Time::now();
+
+while(ros::ok() )
+{
+ loc_pos.header.stamp = ros::Time::now();
+ loc_pos.header.frame_id ="map";
+ loc_pos.pose.position.x = tx;
+ loc_pos.pose.position.y = ty;
+ loc_pos.pose.position.z = tz;
+
+ loc_pos.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(roll,pitch,yaw);
+ ROS_INFO("X");
+ ROS_INFO("X: %f",loc_pos.pose.position.x);
+ local_pos_pub.publish(loc_pos);
+ // ros::spin();
+ ros::spinOnce();
+ rate.sleep();
+
+}
 
 
   return 0;

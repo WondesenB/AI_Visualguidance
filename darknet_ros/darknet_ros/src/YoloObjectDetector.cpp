@@ -24,6 +24,7 @@ char *cfg;
 char *weights;
 char *data;
 char **detectionNames;
+float numdetcted;
 
 YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh)
     : nodeHandle_(nh),

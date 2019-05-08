@@ -5,12 +5,16 @@
 	mkdir -p ~/catkin_ws/src
 	cd ~/catkin_ws/src
 	git clone https://github.com/usdl2019/AI_Visualguidance.git 
-<<<<<<< HEAD
+
 	chmod +x AI_Visualguidance/zed-ros-wrapper/zed_wrapper/cfg/Zed.cfg
-        cd ~/catkin_ws
-=======
+        copy training weights and cfg files
+        cp /path/xxx.weights ~/catkin_ws/src/AI_Visualguidance/darknet_ros/darknet_ros/yolo_network_config/weights/
+        cp /path/xxx.cfg    ~/catkin_ws/src/AI_Visualguidance/darknet_ros/darknet_ros/yolo_network_config/cfg
+	Then modify 
+	/AI_Visualguidance/darknet_ros/darknet_ros/config/yolov3_custom.yaml 
+
 	cd ~/catkin_ws
->>>>>>> 1b7f380c60f5538edbf8c945e5b8c519830c2bcb
+
 	catkin_make
 	source devel/setup.bash
 	roslaunch zed_wrapper zed.launch

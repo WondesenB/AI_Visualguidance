@@ -6,11 +6,8 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
-<<<<<<< HEAD
   darknet_ros_msgs
-=======
->>>>>>> 1b7f380c60f5538edbf8c945e5b8c519830c2bcb
-)
+ )
 
 
 catkin_package(

@@ -11,7 +11,7 @@ The YOLO packages have been tested under ROS Melodic and Ubuntu 18.04. This is r
 **Affiliation: [Robotic Systems Lab](http://www.rsl.ethz.ch/), ETH Zurich**
 
 ![Darknet Ros example: Detection image](darknet_ros/doc/test_detection.jpg)
-![Darknet Ros example: Detection image](darknet_ros/doc/test_detection_anymal.jpg)
+![Darknet Ros example: Detection image](darknet_ros/doc/quadruped_anymal_and_person.JPG)
 
 Based on the [Pascal VOC](https://pjreddie.com/projects/pascal-voc-dataset-mirror/) 2012 dataset, YOLO can detect the 20 Pascal object classes:
 

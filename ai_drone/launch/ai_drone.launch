@@ -1,0 +1,9 @@
+<launch>
+
+<!-- Multiple package launcher -->
+
+<include file="$(find zed_wrapper)/launch/zed.launch" />
+<include file="$(find darknet_ros)/launch/yolo_v3.launch" />
+<include file="$(find zed_data_subscribe)/launch/zed_data.launch" />
+
+</launch>

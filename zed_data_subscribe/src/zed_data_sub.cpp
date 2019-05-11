@@ -18,6 +18,7 @@
 
 #include <string>
 #include "std_msgs/String.h"
+#include "std_msgs/Int8.h"
 #include <cstddef>
 
 #define RAD2DEG 57.295779513
@@ -25,16 +26,18 @@
 /**
  * Subscriber callbacks
  */
- int u;
- int v;
- double tx ;
- double ty ;
- double tz ;
+int u;
+int v;
+double tx ;
+double ty ;
+double tz ;
 double roll, pitch, yaw;
+int n=0;
+
 void boundingbox_callback(const darknet_ros_msgs::BoundingBoxes::ConstPtr&  msg)
 {
     int  i = 0;
-   while(i < msg->bounding_boxes[0].num )
+   while(i < n)
    {
 
    
@@ -50,7 +53,7 @@ void boundingbox_callback(const darknet_ros_msgs::BoundingBoxes::ConstPtr&  msg)
       ROS_INFO("detected object  %s %d center is at X_c = %.2f , Y_c = %.2f ,total detected = %d ",msg->bounding_boxes[i].Class.c_str(),i,X_c,Y_c,msg->bounding_boxes[0].num );     
      }
 
-    i++;
+    i += 1;
    }
 
 }
@@ -157,6 +160,12 @@ void pixelTo3DXYZ_callback(const sensor_msgs::PointCloud2 pointCL)
  
 }
 
+void numOfdetectedObjetCallback(const std_msgs::Int8::ConstPtr& msg)
+{
+ n = msg->data;
+ ROS_INFO("number of detected objects: %d",msg->data);
+}
+
 int main(int argc, char **argv)
 {
 
@@ -167,13 +176,12 @@ int main(int argc, char **argv)
   ros::NodeHandle n;
   ros::Subscriber sub               = n.subscribe("/zed/depth/depth_registered", 10, camera_depth_callback);
   ros::Subscriber subpcl            = n.subscribe("/zed/point_cloud/cloud_registered", 10, pixelTo3DXYZ_callback);
-  ros::Subscriber subcenter         = n.subscribe("/darknet_ros/bounding_boxes", 10, boundingbox_callback); // checking data subscription from objected detector package
+  ros::Subscriber subcenter         = n.subscribe("/darknet_ros/bounding_boxes", 30, boundingbox_callback); // checking data subscription from objected detector package
   ros::Subscriber subOdom           = n.subscribe("/zed/odom", 10, odomCallback);
   ros::Subscriber subPose           = n.subscribe("/zed/pose", 10, poseCallback);
-  ros::Subscriber subRightRectified = n.subscribe("/zed/right/image_rect_color", 10,
-                                     imageRightRectifiedCallback);
-  ros::Subscriber subLeftRectified  = n.subscribe("/zed/left/image_rect_color", 10,
-                                     imageLeftRectifiedCallback);
+  ros::Subscriber subRightRectified = n.subscribe("/zed/right/image_rect_color", 10,imageRightRectifiedCallback);
+  ros::Subscriber subLeftRectified  = n.subscribe("/zed/left/image_rect_color", 10,imageLeftRectifiedCallback);
+  ros::Subscriber subObj_num        = n.subscribe("/darknet_ros/found_object",10, numOfdetectedObjetCallback);
 
   ros::Publisher local_pos_pub = n.advertise<geometry_msgs::PoseStamped>
             ("/mavros/vision_pose/pose", 100); //mocap vision_pose /mavros/vision_pose/pose

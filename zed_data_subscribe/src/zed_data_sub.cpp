@@ -21,11 +21,13 @@
 #include "std_msgs/Int8.h"
 #include <cstddef>
 
+
 #define RAD2DEG 57.295779513
 //string bado= "(null)";
 /**
  * Subscriber callbacks
  */
+
 int u;
 int v;
 double tx ;
@@ -36,24 +38,18 @@ int n=0;
 
 void boundingbox_callback(const darknet_ros_msgs::BoundingBoxes::ConstPtr&  msg)
 {
-    int  i = 0;
-   while(i < n)
+
+   // int  i = 0;
+   // int nn = n;
+  for (int i =0; i<msg->bounding_boxes.size();++i)
    {
 
+      const darknet_ros_msgs::BoundingBox &data = msg->bounding_boxes[i];
+      float  X_c = (data.xmin + data.xmax )/2;
+      float  Y_c = (data.ymin + data.ymax )/2;
+      ROS_INFO("%s center is @ (%f,%f) ",data.Class.c_str(),X_c,Y_c );     
+     
    
-     if (msg->bounding_boxes[i].Class.c_str() == "")
-     {
-       i = 0;
-       continue;
-     }
-     else
-     {
-      float  X_c = (msg->bounding_boxes[i].xmin + msg->bounding_boxes[i].xmax )/2;
-      float  Y_c = (msg->bounding_boxes[i].ymin + msg->bounding_boxes[i].ymax )/2;
-      ROS_INFO("detected object  %s %d center is at X_c = %.2f , Y_c = %.2f ,total detected = %d ",msg->bounding_boxes[i].Class.c_str(),i,X_c,Y_c,msg->bounding_boxes[0].num );     
-     }
-
-    i += 1;
    }
 
 }
@@ -165,7 +161,7 @@ void numOfdetectedObjetCallback(const std_msgs::Int8::ConstPtr& msg)
  n = msg->data;
  ROS_INFO("number of detected objects: %d",msg->data);
 }
-
+ 
 int main(int argc, char **argv)
 {
 
@@ -176,7 +172,7 @@ int main(int argc, char **argv)
   ros::NodeHandle n;
   ros::Subscriber sub               = n.subscribe("/zed/depth/depth_registered", 10, camera_depth_callback);
   ros::Subscriber subpcl            = n.subscribe("/zed/point_cloud/cloud_registered", 10, pixelTo3DXYZ_callback);
-  ros::Subscriber subcenter         = n.subscribe("/darknet_ros/bounding_boxes", 30, boundingbox_callback); // checking data subscription from objected detector package
+  ros::Subscriber subcenter         = n.subscribe("/darknet_ros/bounding_boxes", 10, boundingbox_callback); // checking data subscription from objected detector package
   ros::Subscriber subOdom           = n.subscribe("/zed/odom", 10, odomCallback);
   ros::Subscriber subPose           = n.subscribe("/zed/pose", 10, poseCallback);
   ros::Subscriber subRightRectified = n.subscribe("/zed/right/image_rect_color", 10,imageRightRectifiedCallback);

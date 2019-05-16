@@ -170,13 +170,13 @@ int main(int argc, char **argv)
 
 
   ros::NodeHandle n;
-  ros::Subscriber sub               = n.subscribe("/zed/depth/depth_registered", 10, camera_depth_callback);
-  ros::Subscriber subpcl            = n.subscribe("/zed/point_cloud/cloud_registered", 10, pixelTo3DXYZ_callback);
+  ros::Subscriber sub               = n.subscribe("/zed/zed_node/depth/depth_registered", 10, camera_depth_callback);
+  ros::Subscriber subpcl            = n.subscribe("/zed/zed_node/point_cloud/cloud_registered", 10, pixelTo3DXYZ_callback);
   ros::Subscriber subcenter         = n.subscribe("/darknet_ros/bounding_boxes", 10, boundingbox_callback); // checking data subscription from objected detector package
-  ros::Subscriber subOdom           = n.subscribe("/zed/odom", 10, odomCallback);
-  ros::Subscriber subPose           = n.subscribe("/zed/pose", 10, poseCallback);
-  ros::Subscriber subRightRectified = n.subscribe("/zed/right/image_rect_color", 10,imageRightRectifiedCallback);
-  ros::Subscriber subLeftRectified  = n.subscribe("/zed/left/image_rect_color", 10,imageLeftRectifiedCallback);
+  // ros::Subscriber subOdom           = n.subscribe("/zed/zed_node/odom", 10, odomCallback);
+  ros::Subscriber subPose           = n.subscribe("/zed/zed_node/pose", 10, poseCallback);
+  // ros::Subscriber subRightRectified = n.subscribe("/zed/right/image_rect_color", 10,imageRightRectifiedCallback);
+  // ros::Subscriber subLeftRectified  = n.subscribe("/zed/left/image_rect_color", 10,imageLeftRectifiedCallback);
   ros::Subscriber subObj_num        = n.subscribe("/darknet_ros/found_object",10, numOfdetectedObjetCallback);
 
   ros::Publisher local_pos_pub = n.advertise<geometry_msgs::PoseStamped>
@@ -195,7 +195,7 @@ while(ros::ok() )
  loc_pos.pose.position.z = tz;
 
  loc_pos.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(roll,pitch,yaw);
- ROS_INFO("X");
+ // ROS_INFO("X");
  ROS_INFO("X: %f",loc_pos.pose.position.x);
  local_pos_pub.publish(loc_pos);
  // ros::spin();

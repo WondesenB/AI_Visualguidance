@@ -1,7 +1,7 @@
 subscribers:
 
   camera_reading:
-    topic: /zed/rgb/image_raw_color   #/camera/rgb/image_raw
+    topic: /zed/zed_node/rgb/image_rect_color   #/camera/rgb/image_raw
     queue_size: 1
 
 actions:

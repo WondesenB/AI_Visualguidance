@@ -20,9 +20,15 @@
 #include "std_msgs/String.h"
 #include "std_msgs/Int8.h"
 #include <cstddef>
+#include <math.h>
+#include <vector>
+#include <algorithm>
 
+//
 
 #define RAD2DEG 57.295779513
+using namespace std;
+
 //string bado= "(null)";
 /**
  * Subscriber callbacks
@@ -36,21 +42,58 @@ double tz ;
 double roll, pitch, yaw;
 int n=0;
 
+float X, Y, Z;
+
+struct objects_boundbox
+{
+string name;
+float  u_c;
+float  v_c;
+float  u_min;
+float  u_max;
+float  v_min;
+float  v_max;
+};
+
+struct objects_bbox
+{
+vector<objects_boundbox> obj;
+}obx;
+
+struct objects_
+{
+string name;
+float  Y_min;
+float  X;
+float  Y;
+float  Z;
+float  distance;
+};
+
+struct objects
+{
+vector<objects_> object;
+}ob;
+
+
 void boundingbox_callback(const darknet_ros_msgs::BoundingBoxes::ConstPtr&  msg)
 {
-
-   // int  i = 0;
-   // int nn = n;
+   
+ 
+  obx.obj.clear();
   for (int i =0; i<msg->bounding_boxes.size();++i)
    {
 
       const darknet_ros_msgs::BoundingBox &data = msg->bounding_boxes[i];
       float  X_c = (data.xmin + data.xmax )/2;
       float  Y_c = (data.ymin + data.ymax )/2;
-      ROS_INFO("%s center is @ (%f,%f) ",data.Class.c_str(),X_c,Y_c );     
+      obx.obj.push_back({data.Class.c_str(),X_c,Y_c,data.xmin,data.xmax,data.ymin,data.ymax});
+      
+      // ROS_INFO("%s center is @ (%f,%f) ",data.Class.c_str(),X_c,Y_c);     
      
    
    }
+
 
 }
 
@@ -121,10 +164,10 @@ void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
     m.getRPY(roll, pitch, yaw);
 
    // Output the measure
-    ROS_INFO("Received pose in '%s' frame : X: %.2f Y: %.2f Z: %.2f - R: %.2f P: %.2f Y: %.2f",
-             msg->header.frame_id.c_str(),
-             tx, ty, tz,
-             roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+    // ROS_INFO("Received pose in '%s' frame : X: %.2f Y: %.2f Z: %.2f - R: %.2f P: %.2f Y: %.2f",
+    //          msg->header.frame_id.c_str(),
+    //          tx, ty, tz,
+    //          roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
 }
 
 void imageRightRectifiedCallback(const sensor_msgs::Image::ConstPtr& msg) {
@@ -138,21 +181,58 @@ void imageLeftRectifiedCallback(const sensor_msgs::Image::ConstPtr& msg) {
 void pixelTo3DXYZ_callback(const sensor_msgs::PointCloud2 pointCL)
 {
 
+     
+     objects_bbox* obb = &obx;
+     // objects* obo = &ob;
+     int arrayPosition;
+     int arrayPosX  ; // X has an offset of 0
+     int arrayPosY  ; // Y has an offset of 4
+     int arrayPosZ  ; // Z has an offset of 8
 
-    int arrayPosition = (v-300)*pointCL.row_step + (u-400)*pointCL.point_step;
-    int arrayPosX     = arrayPosition + pointCL.fields[0].offset; // X has an offset of 0
-    int arrayPosY     = arrayPosition + pointCL.fields[1].offset; // Y has an offset of 4
-    int arrayPosZ     = arrayPosition + pointCL.fields[2].offset; // Z has an offset of 8
- 
-    float X ;
-    float Y ;
-    float Z ;
- 
-    memcpy(&X, &pointCL.data[arrayPosX], sizeof(float));
-    memcpy(&Y, &pointCL.data[arrayPosY], sizeof(float));
-    memcpy(&Z, &pointCL.data[arrayPosZ], sizeof(float));
+     int arrayPosition1;
+     int arrayPosXmin  ; // X has an offset of 0
+     int arrayPosYmin  ; // Y has an offset of 4
+     int arrayPosZmin  ; // Z has an offset of 8
+     float dis, xmin, ymin, zmin;
+     ob.object.clear();
+
+     for (int i =0; i<obb->obj.size();++i)
+     {
+
+      arrayPosition = (obb->obj[i].v_c)*pointCL.row_step + (obb->obj[i].u_c)*pointCL.point_step;
+      arrayPosX     = arrayPosition + pointCL.fields[0].offset; // X has an offset of 0
+      arrayPosY     = arrayPosition + pointCL.fields[1].offset; // Y has an offset of 4
+      arrayPosZ     = arrayPosition + pointCL.fields[2].offset; // Z has an offset of 8
    
-    ROS_INFO("XYZ = (%f,%f,%f)",X,Y,Z);
+     
+      memcpy(&X, &pointCL.data[arrayPosX], sizeof(float));
+      memcpy(&Y, &pointCL.data[arrayPosY], sizeof(float));
+      memcpy(&Z, &pointCL.data[arrayPosZ], sizeof(float)); 
+      dis = sqrt(X*X+Y*Y+Z*Z);
+
+      arrayPosition1 = (obb->obj[i].v_c)*pointCL.row_step + (obb->obj[i].u_max)*pointCL.point_step;
+      arrayPosXmin     = arrayPosition1 + pointCL.fields[0].offset; // X has an offset of 0
+      arrayPosYmin     = arrayPosition1 + pointCL.fields[1].offset; // Y has an offset of 4
+      arrayPosZmin     = arrayPosition1 + pointCL.fields[2].offset; // Z has an offset of 8
+
+      memcpy(&xmin, &pointCL.data[arrayPosXmin], sizeof(float));
+      memcpy(&ymin, &pointCL.data[arrayPosYmin], sizeof(float));
+      memcpy(&zmin, &pointCL.data[arrayPosZmin], sizeof(float)); 
+
+      ob.object.push_back({obb->obj[i].name.c_str(),ymin,X,Y,Z,dis});
+      // ROS_INFO("%s Y_min is @ (%f,%f)",obb->obj[i].name.c_str(),obb->obj[i].u_min,obb->obj[i].v_c);   
+      // ROS_INFO("detected object info,name = %s , XYZ = (%f,%f,%f) , Y_min = %f, distance = %f ",
+      //   ob.object[i].name.c_str(),ob.object[i].X,ob.object[i].Y,ob.object[i].Z,ob.object[i].Y_min,ob.object[i].distance);
+     }
+
+     obx.obj.clear();
+     // sort(ob.begin(),ob.end(),[](objects a, objects b)->bool {return a.Y_min < b.Y_min;});
+
+     // for (int i=0; i<ob.size();++i )
+     // {
+     //  ROS_INFO("%s  %f  %f  %f %f %f  %f",ob[i].name.c_str(),ob[i].Y_min,ob[i].Z_min,ob[i].X,ob[i].Y,ob[i].Z,ob[i].distance);
+     // }
+    
  
 }
 
@@ -177,7 +257,7 @@ int main(int argc, char **argv)
   ros::Subscriber subPose           = n.subscribe("/zed/zed_node/pose", 10, poseCallback);
   // ros::Subscriber subRightRectified = n.subscribe("/zed/right/image_rect_color", 10,imageRightRectifiedCallback);
   // ros::Subscriber subLeftRectified  = n.subscribe("/zed/left/image_rect_color", 10,imageLeftRectifiedCallback);
-  ros::Subscriber subObj_num        = n.subscribe("/darknet_ros/found_object",10, numOfdetectedObjetCallback);
+  // ros::Subscriber subObj_num        = n.subscribe("/darknet_ros/found_object",10, numOfdetectedObjetCallback);
 
   ros::Publisher local_pos_pub = n.advertise<geometry_msgs::PoseStamped>
             ("/mavros/vision_pose/pose", 100); //mocap vision_pose /mavros/vision_pose/pose
@@ -185,6 +265,11 @@ int main(int argc, char **argv)
  ros::Rate rate(70.0);  
  geometry_msgs::PoseStamped loc_pos;
  ros::Time last_request = ros::Time::now();
+ float ox,oy,oz;
+
+    // sort(obb.obj.begin(),obb.obj.end(),[](objects_bbox a, objects_bbox b)->bool {return a.obj[i].u_c < b.obj[i].u_c;});
+  objects* obb = &ob;
+     // ROS_INFO("n = %d",obb->object.size());
 
 while(ros::ok() )
 {
@@ -195,8 +280,20 @@ while(ros::ok() )
  loc_pos.pose.position.z = tz;
 
  loc_pos.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(roll,pitch,yaw);
+ ox = tx + X*cos(yaw)-Y*sin(yaw);
+ oy = ty + Y*cos(yaw) + X*sin(yaw);
+ oz = tz + Z;
+
+  for (int i=0; i<obb->object.size();++i )
+ {
+  ROS_INFO("%s  XYZ_map @ (%f, %f, %f), Y_min = %f , Distance = %f  ",obb->object[i].name.c_str(),
+    obb->object[i].X,obb->object[i].Y,obb->object[i].Z,obb->object[i].Y_min,obb->object[i].distance);
+ }
+
  // ROS_INFO("X");
- ROS_INFO("X: %f",loc_pos.pose.position.x);
+ // ROS_INFO("Camera position wrt map: (%f,%f,%f)",tx,ty,tz);
+ // ROS_INFO("Camera rotation wrt camera: (%f,%f,%f)",roll*RAD2DEG,pitch*RAD2DEG,yaw*RAD2DEG);
+ // ROS_INFO("Object position wrt map: (%f,%f,%f)",ox,oy,oz);
  local_pos_pub.publish(loc_pos);
  // ros::spin();
  ros::spinOnce();

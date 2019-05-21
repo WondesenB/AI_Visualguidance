@@ -7,15 +7,32 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  geometry_msgs
+  sensor_msgs
   darknet_ros_msgs
+  message_generation
  )
 
+add_message_files(
+  FILES
+  detected_object_info.msg
+  detected_object.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  geometry_msgs
+  sensor_msgs
+  darknet_ros_msgs
+)
 
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES zed_depthdata_subscribe
 #  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
+CATKIN_DEPENDS message_runtime
 )
 
 

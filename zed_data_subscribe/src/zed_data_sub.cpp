@@ -11,6 +11,7 @@
 // darknet_ros_msgs
 #include <darknet_ros_msgs/BoundingBoxes.h>
 #include <darknet_ros_msgs/BoundingBox.h>
+#include <zed_data_subscribe/detected_object.h>
 
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2/LinearMath/Matrix3x3.h"
@@ -262,6 +263,10 @@ int main(int argc, char **argv)
   ros::Publisher local_pos_pub = n.advertise<geometry_msgs::PoseStamped>
             ("/mavros/vision_pose/pose", 100); //mocap vision_pose /mavros/vision_pose/pose
 
+ ros::Publisher detected_obj_pub = n.advertise<zed_data_subscribe::detected_object>("/detected_object/info",10);
+ zed_data_subscribe::detected_object  detected_obj;
+ zed_data_subscribe::detected_object_info  detected_obj_info;
+
  ros::Rate rate(70.0);  
  geometry_msgs::PoseStamped loc_pos;
  ros::Time last_request = ros::Time::now();
@@ -286,10 +291,20 @@ while(ros::ok() )
 
   for (int i=0; i<obb->object.size();++i )
  {
-  ROS_INFO("%s  XYZ_map @ (%f, %f, %f), Y_min = %f , Distance = %f  ",obb->object[i].name.c_str(),
+    detected_obj_info.name      = obb->object[i].name.c_str();
+    detected_obj_info.Y_min     = obb->object[i].Y_min;
+    detected_obj_info.X         = obb->object[i].X;
+    detected_obj_info.Y         = obb->object[i].Y;
+    detected_obj_info.Z         = obb->object[i].Z;
+    detected_obj_info.distance  = obb->object[i].distance;
+    detected_obj.info.push_back(detected_obj_info);
+
+    ROS_INFO("%s  XYZ_map @ (%f, %f, %f), Y_min = %f , Distance = %f  ",obb->object[i].name.c_str(),
     obb->object[i].X,obb->object[i].Y,obb->object[i].Z,obb->object[i].Y_min,obb->object[i].distance);
  }
 
+ detected_obj_pub.publish(detected_obj);
+ detected_obj.info.clear();
  // ROS_INFO("X");
  // ROS_INFO("Camera position wrt map: (%f,%f,%f)",tx,ty,tz);
  // ROS_INFO("Camera rotation wrt camera: (%f,%f,%f)",roll*RAD2DEG,pitch*RAD2DEG,yaw*RAD2DEG);

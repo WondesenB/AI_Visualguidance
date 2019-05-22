@@ -1,0 +1,8 @@
+<launch>
+
+   <!-- srf08 ultrasoninc ranging sensor launcher -->
+   <node pkg="srf08_ranging" name="srf08_ranging" type="srf08_ranging_node" output="screen">
+   
+   </node>
+
+</launch>

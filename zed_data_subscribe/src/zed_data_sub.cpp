@@ -303,6 +303,8 @@ while(ros::ok() )
     obb->object[i].X,obb->object[i].Y,obb->object[i].Z,obb->object[i].Y_min,obb->object[i].distance);
  }
 
+ detected_obj.header.stamp = ros::Time::now();
+ detected_obj.header.frame_id ="map";
  detected_obj_pub.publish(detected_obj);
  detected_obj.info.clear();
  // ROS_INFO("X");

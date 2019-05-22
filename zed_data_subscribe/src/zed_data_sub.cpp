@@ -65,10 +65,12 @@ struct objects_
 {
 string name;
 float  Y_min;
+float  Z_min;
 float  X;
 float  Y;
 float  Z;
 float  distance;
+float  area;
 };
 
 struct objects
@@ -190,11 +192,19 @@ void pixelTo3DXYZ_callback(const sensor_msgs::PointCloud2 pointCL)
      int arrayPosY  ; // Y has an offset of 4
      int arrayPosZ  ; // Z has an offset of 8
 
+     // Y_min
      int arrayPosition1;
      int arrayPosXmin  ; // X has an offset of 0
      int arrayPosYmin  ; // Y has an offset of 4
      int arrayPosZmin  ; // Z has an offset of 8
-     float dis, xmin, ymin, zmin;
+     float dis, Xymin, Yymin, Zymin;
+
+     // Z_min
+     int arrayPosition2;
+     int arrayPosXZmin  ; // X has an offset of 0
+     int arrayPosYZmin  ; // Y has an offset of 4
+     int arrayPosZZmin  ; // Z has an offset of 8
+     float Xzmin,Yzmin, Zzmin, area;
      ob.object.clear();
 
      for (int i =0; i<obb->obj.size();++i)
@@ -211,16 +221,27 @@ void pixelTo3DXYZ_callback(const sensor_msgs::PointCloud2 pointCL)
       memcpy(&Z, &pointCL.data[arrayPosZ], sizeof(float)); 
       dis = sqrt(X*X+Y*Y+Z*Z);
 
+     // Y_min
       arrayPosition1 = (obb->obj[i].v_c)*pointCL.row_step + (obb->obj[i].u_max)*pointCL.point_step;
       arrayPosXmin     = arrayPosition1 + pointCL.fields[0].offset; // X has an offset of 0
       arrayPosYmin     = arrayPosition1 + pointCL.fields[1].offset; // Y has an offset of 4
       arrayPosZmin     = arrayPosition1 + pointCL.fields[2].offset; // Z has an offset of 8
 
-      memcpy(&xmin, &pointCL.data[arrayPosXmin], sizeof(float));
-      memcpy(&ymin, &pointCL.data[arrayPosYmin], sizeof(float));
-      memcpy(&zmin, &pointCL.data[arrayPosZmin], sizeof(float)); 
+      memcpy(&Xymin, &pointCL.data[arrayPosXmin], sizeof(float));
+      memcpy(&Yymin, &pointCL.data[arrayPosYmin], sizeof(float));
+      memcpy(&Zymin, &pointCL.data[arrayPosZmin], sizeof(float)); 
 
-      ob.object.push_back({obb->obj[i].name.c_str(),ymin,X,Y,Z,dis});
+     // Z_min
+      arrayPosition2 = (obb->obj[i].v_max)*pointCL.row_step + (obb->obj[i].u_c)*pointCL.point_step;
+      arrayPosXZmin     = arrayPosition2 + pointCL.fields[0].offset; // X has an offset of 0
+      arrayPosYZmin     = arrayPosition2 + pointCL.fields[1].offset; // Y has an offset of 4
+      arrayPosZZmin     = arrayPosition2 + pointCL.fields[2].offset; // Z has an offset of 8
+
+      memcpy(&Xzmin, &pointCL.data[arrayPosXZmin], sizeof(float));
+      memcpy(&Yzmin, &pointCL.data[arrayPosYZmin], sizeof(float));
+      memcpy(&Zzmin, &pointCL.data[arrayPosZZmin], sizeof(float));
+      area = (2.0f*abs(Y-Yymin))*(2.0f*abs(Z-Zzmin));
+      ob.object.push_back({obb->obj[i].name.c_str(),Yymin,Zzmin,X,Y,Z,dis,area});
       // ROS_INFO("%s Y_min is @ (%f,%f)",obb->obj[i].name.c_str(),obb->obj[i].u_min,obb->obj[i].v_c);   
       // ROS_INFO("detected object info,name = %s , XYZ = (%f,%f,%f) , Y_min = %f, distance = %f ",
       //   ob.object[i].name.c_str(),ob.object[i].X,ob.object[i].Y,ob.object[i].Z,ob.object[i].Y_min,ob.object[i].distance);
@@ -293,14 +314,16 @@ while(ros::ok() )
  {
     detected_obj_info.name      = obb->object[i].name.c_str();
     detected_obj_info.Y_min     = obb->object[i].Y_min;
+    detected_obj_info.Z_min     = obb->object[i].Z_min;
     detected_obj_info.X         = obb->object[i].X;
     detected_obj_info.Y         = obb->object[i].Y;
     detected_obj_info.Z         = obb->object[i].Z;
     detected_obj_info.distance  = obb->object[i].distance;
+    detected_obj_info.area      =obb->object[i].area;
     detected_obj.info.push_back(detected_obj_info);
 
-    ROS_INFO("%s  XYZ_map @ (%f, %f, %f), Y_min = %f , Distance = %f  ",obb->object[i].name.c_str(),
-    obb->object[i].X,obb->object[i].Y,obb->object[i].Z,obb->object[i].Y_min,obb->object[i].distance);
+    ROS_INFO("%s  XYZ_map @ (%f, %f, %f), Y_min = %f , Z_min = %f , Distance = %f , Area = %f ",obb->object[i].name.c_str(),
+    obb->object[i].X,obb->object[i].Y,obb->object[i].Z,obb->object[i].Y_min,obb->object[i].Y_min,obb->object[i].distance,obb->object[i].area);
  }
 
  detected_obj.header.stamp = ros::Time::now();

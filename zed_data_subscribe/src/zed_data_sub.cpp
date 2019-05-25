@@ -1,82 +1,9 @@
 // zed stereo camera subscription code here
 
+#include "zed_data_sub.h"
 
-// include
-#include "ros/ros.h"
-#include <sensor_msgs/Image.h>
-#include <image_transport/image_transport.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <nav_msgs/Odometry.h>
-#include <sensor_msgs/PointCloud2.h>
-// darknet_ros_msgs
-#include <darknet_ros_msgs/BoundingBoxes.h>
-#include <darknet_ros_msgs/BoundingBox.h>
-#include <zed_data_subscribe/detected_object.h>
+ 
 
-#include "tf2/LinearMath/Quaternion.h"
-#include "tf2/LinearMath/Matrix3x3.h"
-#include <tf/transform_datatypes.h>
-
-#include <string>
-#include "std_msgs/String.h"
-#include "std_msgs/Int8.h"
-#include <cstddef>
-#include <math.h>
-#include <vector>
-#include <algorithm>
-
-//
-
-#define RAD2DEG 57.295779513
-using namespace std;
-
-//string bado= "(null)";
-/**
- * Subscriber callbacks
- */
-
-int u;
-int v;
-double tx ;
-double ty ;
-double tz ;
-double roll, pitch, yaw;
-int n=0;
-
-float X, Y, Z;
-
-struct objects_boundbox
-{
-string name;
-float  u_c;
-float  v_c;
-float  u_min;
-float  u_max;
-float  v_min;
-float  v_max;
-};
-
-struct objects_bbox
-{
-vector<objects_boundbox> obj;
-}obx;
-
-struct objects_
-{
-string name;
-float  Y_min;
-float  Z_min;
-float  X;
-float  Y;
-float  Z;
-float  distance;
-float  area;
-};
-
-struct objects
-{
-vector<objects_> object;
-}ob;
 
 
 void boundingbox_callback(const darknet_ros_msgs::BoundingBoxes::ConstPtr&  msg)
@@ -147,17 +74,20 @@ void odomCallback(const nav_msgs::Odometry::ConstPtr& msg) {
 
 void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
 
+   
+
     // Camera position in map frame
      tx = msg->pose.position.x;
      ty = msg->pose.position.y;
      tz = msg->pose.position.z;
 
     // Orientation quaternion
-    tf2::Quaternion q(
-        msg->pose.orientation.x,
-        msg->pose.orientation.y,
-        msg->pose.orientation.z,
-        msg->pose.orientation.w);
+     rx = msg->pose.orientation.x;
+     ry = msg->pose.orientation.y;
+     rz = msg->pose.orientation.z;
+     w  = msg->pose.orientation.w;
+
+    tf2::Quaternion q(rx,ry,rz,w);
 
     // 3x3 Rotation matrix from quaternion
     tf2::Matrix3x3 m(q);
@@ -241,6 +171,8 @@ void pixelTo3DXYZ_callback(const sensor_msgs::PointCloud2 pointCL)
       memcpy(&Yzmin, &pointCL.data[arrayPosYZmin], sizeof(float));
       memcpy(&Zzmin, &pointCL.data[arrayPosZZmin], sizeof(float));
       area = (2.0f*abs(Y-Yymin))*(2.0f*abs(Z-Zzmin));
+
+
       ob.object.push_back({obb->obj[i].name.c_str(),Yymin,Zzmin,X,Y,Z,dis,area});
       // ROS_INFO("%s Y_min is @ (%f,%f)",obb->obj[i].name.c_str(),obb->obj[i].u_min,obb->obj[i].v_c);   
       // ROS_INFO("detected object info,name = %s , XYZ = (%f,%f,%f) , Y_min = %f, distance = %f ",
@@ -260,7 +192,7 @@ void pixelTo3DXYZ_callback(const sensor_msgs::PointCloud2 pointCL)
 
 void numOfdetectedObjetCallback(const std_msgs::Int8::ConstPtr& msg)
 {
- n = msg->data;
+ int n = msg->data;
  ROS_INFO("number of detected objects: %d",msg->data);
 }
  
@@ -269,7 +201,6 @@ int main(int argc, char **argv)
 
 
   ros::init(argc, argv, "zed_data_sub");
-
 
   ros::NodeHandle n;
   ros::Subscriber sub               = n.subscribe("/zed/zed_node/depth/depth_registered", 10, camera_depth_callback);
@@ -288,7 +219,15 @@ int main(int argc, char **argv)
  zed_data_subscribe::detected_object  detected_obj;
  zed_data_subscribe::detected_object_info  detected_obj_info;
 
- ros::Rate rate(70.0);  
+ 
+  static tf2_ros::TransformBroadcaster Qudpose_broadcaster;
+  geometry_msgs::TransformStamped transformStamped;
+ // tf::TransformBroadcaster zedbroadcaster;
+  zed2dronebase_transform ();
+
+ ros::Rate rate(70.0); 
+
+ 
  geometry_msgs::PoseStamped loc_pos;
  ros::Time last_request = ros::Time::now();
  float ox,oy,oz;
@@ -297,33 +236,103 @@ int main(int argc, char **argv)
   objects* obb = &ob;
      // ROS_INFO("n = %d",obb->object.size());
 
+
+  tf2_ros::Buffer tfBuffer;
+  tf2_ros::TransformListener tfListener(tfBuffer);
+
+  // geometry_msgs::TransformStamped transformStamped;
+  geometry_msgs::PointStamped XYZ_in , Ymin_in, Zmin_in ;
+  geometry_msgs::PointStamped XYZ_out,Ymin_out, Zmin_out ;
+
 while(ros::ok() )
 {
+
+  // Tf2 tansform 
+  transformStamped.header.stamp = ros::Time::now();
+  transformStamped.header.frame_id = "map";
+  transformStamped.child_frame_id = "base_drone";
+  transformStamped.transform.translation.x = tx;
+  transformStamped.transform.translation.y = ty;
+  transformStamped.transform.translation.z = tz;
+  tf2::Quaternion quat;
+  quat.setRPY(roll, pitch, yaw);
+  transformStamped.transform.rotation.x = quat.x();
+  transformStamped.transform.rotation.y = quat.y();
+  transformStamped.transform.rotation.z = quat.z();
+  transformStamped.transform.rotation.w = quat.w();
+
+  Qudpose_broadcaster.sendTransform(transformStamped);
+
+    // zedbroadcaster.sendTransform(
+    //   tf::StampedTransform(
+    //     tf::Transform(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0.5, 0.0, -0.2)),
+    //     ros::Time::now(),"base_drone", "base_zed"));
+
  loc_pos.header.stamp = ros::Time::now();
  loc_pos.header.frame_id ="map";
  loc_pos.pose.position.x = tx;
  loc_pos.pose.position.y = ty;
  loc_pos.pose.position.z = tz;
-
  loc_pos.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(roll,pitch,yaw);
+
+ local_pos_pub.publish(loc_pos);
+
+ //Transformation
  ox = tx + X*cos(yaw)-Y*sin(yaw);
  oy = ty + Y*cos(yaw) + X*sin(yaw);
  oz = tz + Z;
 
+
+
+//publisher
   for (int i=0; i<obb->object.size();++i )
  {
+
+    XYZ_in.header.stamp = ros::Time();
+    XYZ_in.point.x = obb->object[i].X;
+    XYZ_in.point.y = obb->object[i].Y;
+    XYZ_in.point.z = obb->object[i].Z;
+
+    Ymin_in.header.stamp = ros::Time();
+    Ymin_in.point.x = obb->object[i].X;
+    Ymin_in.point.y = obb->object[i].Y_min;
+    Ymin_in.point.z = obb->object[i].Z;
+
+    Zmin_in.header.stamp = ros::Time();
+    Zmin_in.point.x = obb->object[i].X;
+    Zmin_in.point.y = obb->object[i].Y;
+    Zmin_in.point.z = obb->object[i].Z_min;
+
+  try {
+      transformStamped = tfBuffer.lookupTransform("map", "camera_center",ros::Time(0),ros::Duration(10.0));
+      tf2::doTransform(XYZ_in, XYZ_out, transformStamped);
+      tf2::doTransform(Ymin_in, Ymin_out, transformStamped);
+      tf2::doTransform(Zmin_in, Zmin_out, transformStamped);
+
+      ROS_INFO("XYZ wrt camera = (%f, %f, %f), XYZ wrt map = (%f, %f, %f)" ,XYZ_in.point.x,XYZ_in.point.y,XYZ_in.point.y,XYZ_out.point.x, XYZ_out.point.y,XYZ_out.point.z );
+
+      } 
+  catch (tf2::TransformException &ex) 
+
+      {
+
+      ROS_WARN("%s", ex.what());
+      ros::Duration(1.0).sleep();
+      continue;
+      }
+
     detected_obj_info.name      = obb->object[i].name.c_str();
-    detected_obj_info.Y_min     = obb->object[i].Y_min;
-    detected_obj_info.Z_min     = obb->object[i].Z_min;
-    detected_obj_info.X         = obb->object[i].X;
-    detected_obj_info.Y         = obb->object[i].Y;
-    detected_obj_info.Z         = obb->object[i].Z;
+    detected_obj_info.Y_min     = Ymin_out.point.y;
+    detected_obj_info.Z_min     = Zmin_out.point.z;
+    detected_obj_info.X         = XYZ_out.point.x;
+    detected_obj_info.Y         = XYZ_out.point.y;
+    detected_obj_info.Z         = XYZ_out.point.z;
     detected_obj_info.distance  = obb->object[i].distance;
     detected_obj_info.area      =obb->object[i].area;
     detected_obj.info.push_back(detected_obj_info);
 
-    ROS_INFO("%s  XYZ_map @ (%f, %f, %f), Y_min = %f , Z_min = %f , Distance = %f , Area = %f ",obb->object[i].name.c_str(),
-    obb->object[i].X,obb->object[i].Y,obb->object[i].Z,obb->object[i].Y_min,obb->object[i].Y_min,obb->object[i].distance,obb->object[i].area);
+    // ROS_INFO("%s  XYZ_map @ (%f, %f, %f), Y_min = %f , Z_min = %f , Distance = %f , Area = %f ",obb->object[i].name.c_str(),
+    // obb->object[i].X,obb->object[i].Y,obb->object[i].Z,obb->object[i].Y_min,obb->object[i].Y_min,obb->object[i].distance,obb->object[i].area);
  }
 
  detected_obj.header.stamp = ros::Time::now();
@@ -334,7 +343,7 @@ while(ros::ok() )
  // ROS_INFO("Camera position wrt map: (%f,%f,%f)",tx,ty,tz);
  // ROS_INFO("Camera rotation wrt camera: (%f,%f,%f)",roll*RAD2DEG,pitch*RAD2DEG,yaw*RAD2DEG);
  // ROS_INFO("Object position wrt map: (%f,%f,%f)",ox,oy,oz);
- local_pos_pub.publish(loc_pos);
+
  // ros::spin();
  ros::spinOnce();
  rate.sleep();
@@ -345,3 +354,25 @@ while(ros::ok() )
   return 0;
 }
 
+
+// function definition
+
+void zed2dronebase_transform (void)
+{
+  static tf2_ros::StaticTransformBroadcaster static_broadcaster;
+  geometry_msgs::TransformStamped static_transformStamped;
+
+  static_transformStamped.header.stamp = ros::Time::now();
+  static_transformStamped.header.frame_id = "base_drone";
+  static_transformStamped.child_frame_id = "camera_center";
+  static_transformStamped.transform.translation.x = 0.15;
+  static_transformStamped.transform.translation.y = 0.0;
+  static_transformStamped.transform.translation.z = -0.10;
+  tf2::Quaternion quat;
+  quat.setRPY(0.0, 0.0, 0.0);
+  static_transformStamped.transform.rotation.x = quat.x();
+  static_transformStamped.transform.rotation.y = quat.y();
+  static_transformStamped.transform.rotation.z = quat.z();
+  static_transformStamped.transform.rotation.w = quat.w();
+  static_broadcaster.sendTransform(static_transformStamped);
+}

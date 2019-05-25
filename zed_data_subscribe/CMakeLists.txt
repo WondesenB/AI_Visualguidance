@@ -11,6 +11,11 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   darknet_ros_msgs
   message_generation
+  tf
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  
  )
 
 add_message_files(
@@ -37,7 +42,7 @@ CATKIN_DEPENDS message_runtime
 
 
 include_directories(
-# include
+ include
   ${catkin_INCLUDE_DIRS}
 )
 

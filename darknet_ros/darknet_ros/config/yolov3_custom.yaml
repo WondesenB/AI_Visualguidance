@@ -8,12 +8,6 @@ yolo_model:
     value: 0.3
   detection_classes:
     names:
-      - fan    #modfiy
-      - landing pad
-      - net
-      - pipe
-      - pole
       - window
-      - tree
-      - wall
+
 

@@ -40,6 +40,8 @@ int obstacle_up, obstacle_right, obstacle_left;
 float obstacle_front;
 
 mavros_msgs::State current_state;
+geometry_msgs::PoseStamped pose_sp;
+ros::Publisher pose_sp_pub;
 
 enum mission_type
 {
@@ -54,19 +56,17 @@ mission_landing
 
 enum track_window_cmd
 {
- window_search,
- align_vertical,
- align_sideway,
- approach_forward,
+ search,
+ align,
+ approach,
 };
 
 enum window_tracking_state
 {
- window_searching,
- aligning_vertical,
- aligning_sideway,
- approaching_forward,
- window_passed
+ searching,
+ aligning,
+ approaching,
+ passed
 };
 
 enum mission_state
@@ -92,6 +92,23 @@ struct detected_objects
  std::vector<detected_object_detail> object;
 }dobj;
 
+
+struct windows_location
+{
+  float win_Xc;
+  float win_Yc;
+  float win_Zc;
+  
+};
+
+struct windows
+{
+	std::vector<windows_location> wndw;
+}wins;
+
+float WXm, WYm, WZm;
+float Xcam, Ycam, Zcam;
+std::string target_name = "window";
 void wait_cycle(int cycle, ros::Rate r );
 
 void limitWin_location(float& x, float& y, float& z);

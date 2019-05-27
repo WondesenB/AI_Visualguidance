@@ -1,17 +1,6 @@
 #include "mission_node.h"
 
-geometry_msgs::PoseStamped pose_sp;
-ros::Publisher pose_sp_pub;
-struct windows_location
-{
-  std::vector<float> win_Xc;
-  std::vector<float> win_Yc;
-  std::vector<float> win_Zc;
-  
-}win_loc;
 
-float WXm, WYm, WZm;
-float Xcam, Ycam, Zcam;
 // subscriber callback function
 void detected_object_cb(const local_mapping::detected_object::ConstPtr&  msg)
 {
@@ -168,8 +157,8 @@ int main(int argc, char ** argv)
   }
 
   mission_type        mission  = mission_takeoff;
-  track_window_cmd     win_tracking_cmd = window_search;
-  window_tracking_state    win_tracking_state  =  window_searching;
+  track_window_cmd     win_tracking_cmd = search;
+  window_tracking_state    win_tracking_state  =  searching;
   
   while (ros::ok() && !landing) 
   {
@@ -199,22 +188,105 @@ int main(int argc, char ** argv)
         break;
     case mission_window:
           // pass through window
-
-          WXm = 0.0;
-          WYm = 0.0;
-          WZm = Zcam;
-          limitWin_location(WXm, WYm, WZm);
-          pose_sp.header.stamp = ros::Time::now();
-          pose_sp.header.frame_id = "map";
-          pose_sp.pose.position.x = WXm;
-          pose_sp.pose.position.y = WYm;
-          pose_sp.pose.position.z = WZm ;
-          ROS_INFO("Aligning vertically ");
-          wait_cycle(100,rate);
-          if (abs(Ycam) > 0.5 )
+          switch(win_tracking_cmd)
           {
-          mission = mission_landing;  
+            case search:
+                 win_tracking_state = searching;
+                 ROS_INFO("searching");
+                 for (int j =0; j< dobj.object.size(); ++j)
+                 {
+                    std::string s = dobj.object[j].obj_name.c_str();
+                   if (s.compare(target_name)==0)
+                   {
+                    wins.wndw.clear();
+                    wins.wndw.push_back({dobj.object[j].X,dobj.object[j].Y,dobj.object[j].Z});
+                    ROS_INFO("Last %s  found @ (%f, %f, %f)",dobj.object[j].obj_name.c_str(), dobj.object[j].X,dobj.object[j].Y,dobj.object[j].Z);
+                    win_tracking_cmd = align;
+                   }
+                  pose_sp_pub.publish(pose_sp);
+                  ros::spinOnce();
+                  rate.sleep();
+                 }
+                  pose_sp_pub.publish(pose_sp);
+                  ros::spinOnce();
+                  rate.sleep();
+                //break;
+
+            case align:
+                 //window center
+                 win_tracking_state = aligning;
+                 if(wins.wndw.size()>=1)
+                 {
+                   WXm = 0.0;
+                   WYm = wins.wndw[0].win_Yc;
+                   WZm = wins.wndw[0].win_Zc;
+                   limitWin_location(WXm, WYm, WZm);
+                 }
+                 else
+                 {
+                   win_tracking_cmd = search; 
+                   break;
+                 }
+                 if (abs(local_z-WZm)>0.3 || abs(local_y - WYm) > 0.3)
+                 {
+
+                  while(abs(local_z-WZm)>0.3)
+                  {
+                    pose_sp.header.stamp = ros::Time::now();
+                    pose_sp.header.frame_id = "map";
+                    pose_sp.pose.position.x = WXm;
+                    pose_sp.pose.position.y = 0.0;
+                    pose_sp.pose.position.z = WZm;
+                    pose_sp_pub.publish(pose_sp);
+                    ros::spinOnce();
+                    rate.sleep();
+                    ROS_INFO("Aligning vertically ");
+                  }
+                  while(abs(local_y-WYm)>0.3)
+                  {
+                    pose_sp.header.stamp = ros::Time::now();
+                    pose_sp.header.frame_id = "map";
+                    pose_sp.pose.position.x = WXm;
+                    pose_sp.pose.position.y = WYm;
+                    pose_sp.pose.position.z = WZm;
+                    pose_sp_pub.publish(pose_sp);
+                    ros::spinOnce();
+                    rate.sleep();
+                    ROS_INFO("Aligning sideway ");
+                  } 
+                  pose_sp_pub.publish(pose_sp);
+                  ros::spinOnce();
+                  rate.sleep();
+
+                  win_tracking_cmd = search;
+
+
+                 }
+                 else
+                 {
+                  pose_sp_pub.publish(pose_sp);
+                  ros::spinOnce();
+                  rate.sleep();
+                  win_tracking_cmd = search;
+                 }
+                break;
+
+            case approach:
+                break;
           }
+
+          // limitWin_location(WXm, WYm, WZm);
+          // pose_sp.header.stamp = ros::Time::now();
+          // pose_sp.header.frame_id = "map";
+          // pose_sp.pose.position.x = WXm;
+          // pose_sp.pose.position.y = WYm;
+          // pose_sp.pose.position.z = WZm ;
+          // ROS_INFO("Aligning vertically ");
+          // wait_cycle(100,rate);
+          // if (abs(Ycam) > 0.5 )
+          // {
+          // mission = mission_landing;  
+          // }
          break;
     case mission_landing:
                   
@@ -252,25 +324,33 @@ void limitWin_location(float& x, float& y, float& z)
 {
   if(x >7.0 || x < 2.0)
   {
-    x = Xcam;
+    x = 0;
   }
   else
   {
     x = x;
   }
 
-  if(abs(abs(y)-abs(local_y))> 10.0)
+  if((y-local_y)> 10.0)
   {
-    y = Ycam;
+    y = 10.0;
+  }
+  else if((y-local_y)< -10.0)
+  {
+    y =-10.0;
   }
   else
   {
-    y =y;
+    y = y;
   }
 
-  if(z >2.5 || z < 1.0)
+  if(z >3.0 )
   {
-    z = 1.0;
+    z = 230;
+  }
+  else if(z < 1.0)
+  {
+    z= 1.0;
   }
   else
   {

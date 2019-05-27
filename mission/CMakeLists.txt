@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 project(mission)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
@@ -11,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  local_mapping
 )
 
 ## System dependencies are found with CMake's conventions

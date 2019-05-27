@@ -230,7 +230,7 @@ int main(int argc, char **argv)
  
  geometry_msgs::PoseStamped loc_pos;
  ros::Time last_request = ros::Time::now();
- float ox,oy,oz;
+ // float ox,oy,oz;
 
     // sort(obb.obj.begin(),obb.obj.end(),[](objects_bbox a, objects_bbox b)->bool {return a.obj[i].u_c < b.obj[i].u_c;});
   objects* obb = &ob;
@@ -278,9 +278,9 @@ while(ros::ok() )
  local_pos_pub.publish(loc_pos);
 
  //Transformation
- ox = tx + X*cos(yaw)-Y*sin(yaw);
- oy = ty + Y*cos(yaw) + X*sin(yaw);
- oz = tz + Z;
+ // ox = tx + X*cos(yaw)-Y*sin(yaw);
+ // oy = ty + Y*cos(yaw) + X*sin(yaw);
+ // oz = tz + Z;
 
 
 

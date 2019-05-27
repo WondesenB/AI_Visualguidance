@@ -14,6 +14,19 @@
 #include <tf/transform_datatypes.h>
 #include <sensor_msgs/Imu.h>
 #include <tf/tf.h>
+
+#include <local_mapping/detected_object.h>
+
+
+#include <string>
+#include "std_msgs/String.h"
+#include "std_msgs/Int8.h"
+#include <cstddef>
+#include <math.h>
+#include <vector>
+#include <algorithm>
+
+
 int landing = 0;
 int count = 0;
 float takeoff_alt = 1.5;
@@ -39,8 +52,46 @@ mission_net ,
 mission_landing	
 };
 
+enum track_window_cmd
+{
+ window_search,
+ align_vertical,
+ align_sideway,
+ approach_forward,
+};
+
+enum window_tracking_state
+{
+ window_searching,
+ aligning_vertical,
+ aligning_sideway,
+ approaching_forward,
+ window_passed
+};
+
 enum mission_state
 {
 success,
 fail
 };
+
+struct detected_object_detail
+{
+std::string obj_name;
+float  Ymin;
+float  Zmin;
+float  X;
+float  Y;
+float  Z;
+float  distance;
+float  area;	
+};
+
+struct detected_objects
+{
+ std::vector<detected_object_detail> object;
+}dobj;
+
+void wait_cycle(int cycle, ros::Rate r );
+
+void limitWin_location(float& x, float& y, float& z);

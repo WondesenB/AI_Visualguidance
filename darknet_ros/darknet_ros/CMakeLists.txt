@@ -214,10 +214,11 @@ endif()
 target_link_libraries(${PROJECT_NAME}
   ${PROJECT_NAME}_lib
 )
-
+add_dependencies(${PROJECT_NAME}_lib ${catkin_EXPORTED_TARGETS})
 add_dependencies(${PROJECT_NAME}_lib
   darknet_ros_msgs_generate_messages_cpp
 )
+
 
 install(TARGETS ${PROJECT_NAME}_lib
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

@@ -156,6 +156,9 @@ int main(int argc, char ** argv)
     yawt = yaw_ornt;
   }
 
+  ros::Time begin = ros::Time::now();
+  ROS_INFO("time duration in secs = %f", (ros::Time::now()- begin)*1e-9);
+
   mission_type        mission  = mission_takeoff;
   track_window_cmd     win_tracking_cmd = search;
   window_tracking_state    win_tracking_state  =  searching;
@@ -198,10 +201,14 @@ int main(int argc, char ** argv)
                     std::string s = dobj.object[j].obj_name.c_str();
                    if (s.compare(target_name)==0)
                    {
-                    wins.wndw.clear();
+                    //wins.wndw.clear();
                     wins.wndw.push_back({dobj.object[j].X,dobj.object[j].Y,dobj.object[j].Z});
                     ROS_INFO("Last %s  found @ (%f, %f, %f)",dobj.object[j].obj_name.c_str(), dobj.object[j].X,dobj.object[j].Y,dobj.object[j].Z);
                     win_tracking_cmd = align;
+                    if (wins.wndw.size()>=11)
+                       {
+                         wins.wndw.erase(wins.wndw.begin());
+                       }
                    }
                   pose_sp_pub.publish(pose_sp);
                   ros::spinOnce();
@@ -210,7 +217,7 @@ int main(int argc, char ** argv)
                   pose_sp_pub.publish(pose_sp);
                   ros::spinOnce();
                   rate.sleep();
-                //break;
+                  break;
 
             case align:
                  //window center
@@ -269,6 +276,12 @@ int main(int argc, char ** argv)
                   rate.sleep();
                   win_tracking_cmd = search;
                  }
+			/*if ((ros::Time::now()- begin)>ros::Duration(20.0))
+			  {
+			   mission = mission_landing;
+			  }
+			 */
+
                 break;
 
             case approach:
@@ -356,4 +369,9 @@ void limitWin_location(float& x, float& y, float& z)
   {
     z = z;
   }
+}
+
+void winlocation_stat(windows wds, float& Wxm, float& Wym, float& Wzm, float& Xt,float& Yt, float& Zt, float& Xvar, float& Yvar,float& Zvar )
+{
+
 }

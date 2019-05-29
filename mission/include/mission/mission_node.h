@@ -106,9 +106,16 @@ struct windows
 	std::vector<windows_location> wndw;
 }wins;
 
-float WXm, WYm, WZm;
+float WXm, WYm, WZm, Xtot, Ytot, Ztot;
+float Xvar_max = 0.0; 
+float Yvar_max = 0.0;
+float Zvar_max = 0.0;
+
 float Xcam, Ycam, Zcam;
 std::string target_name = "window";
 void wait_cycle(int cycle, ros::Rate r );
 
+
 void limitWin_location(float& x, float& y, float& z);
+void winlocation_stat(windows wds,float& Wxm, float& Wym, float& Wzm, float& Xt,float& Yt, float& Zt, float& Xvar, float& Yvar,float& Zvar );
+

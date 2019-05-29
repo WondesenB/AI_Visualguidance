@@ -191,6 +191,7 @@ int main(int argc, char ** argv)
         break;
     case mission_window:
           // pass through window
+          landing = 0;
           switch(win_tracking_cmd)
           {
             case search:
@@ -247,7 +248,7 @@ int main(int argc, char ** argv)
                     pose_sp_pub.publish(pose_sp);
                     ros::spinOnce();
                     rate.sleep();
-                    ROS_INFO("Aligning vertically ");
+                    ROS_INFO("Aligning vertically @ %f",WZm);
                   }
                   while(abs(local_y-WYm)>0.3)
                   {
@@ -259,13 +260,13 @@ int main(int argc, char ** argv)
                     pose_sp_pub.publish(pose_sp);
                     ros::spinOnce();
                     rate.sleep();
-                    ROS_INFO("Aligning sideway ");
+                    ROS_INFO("Aligning sideway @ %f",WYm);
                   } 
                   pose_sp_pub.publish(pose_sp);
                   ros::spinOnce();
                   rate.sleep();
 
-                  win_tracking_cmd = search;
+                  win_tracking_cmd = search; //approach
 
 
                  }
@@ -274,7 +275,7 @@ int main(int argc, char ** argv)
                   pose_sp_pub.publish(pose_sp);
                   ros::spinOnce();
                   rate.sleep();
-                  win_tracking_cmd = search;
+                  win_tracking_cmd = approach; //search
                  }
 			/*if ((ros::Time::now()- begin)>ros::Duration(20.0))
 			  {
@@ -285,6 +286,40 @@ int main(int argc, char ** argv)
                 break;
 
             case approach:
+                 win_tracking_state = approaching;
+                 if(wins.wndw.size()>=1)
+                 {
+                   WXm = wins.wndw[0].win_Xc;
+                   WYm = wins.wndw[0].win_Yc;
+                   WZm = wins.wndw[0].win_Zc;
+                   limitWin_location(WXm, WYm, WZm);
+                 }
+                 else
+                 {
+                   win_tracking_cmd = search; 
+                   break;
+                 }
+                while(abs(local_x-WXm)>0.3)
+                  {
+                    pose_sp.header.stamp = ros::Time::now();
+                    pose_sp.header.frame_id = "map";
+                    pose_sp.pose.position.x = WXm;
+                    pose_sp.pose.position.y = WYm;
+                    pose_sp.pose.position.z = WZm;
+                    pose_sp_pub.publish(pose_sp);
+                    ros::spinOnce();
+                    rate.sleep();
+                    ROS_INFO("approaching window @ %f",WXm);
+                    if(abs(local_x - WXm) < 0.3)
+                      {
+                       wait_cycle(300, rate);
+                       mission = mission_landing;
+                       break;
+                      }
+                  }
+                    pose_sp_pub.publish(pose_sp);
+                    ros::spinOnce();
+                    rate.sleep();
                 break;
           }
 
@@ -332,18 +367,27 @@ void wait_cycle(int cycle, ros::Rate r )
   } 
 }
 
-
 void limitWin_location(float& x, float& y, float& z)
 {
-  if(x >7.0 || x < 2.0)
+  //---x --
+  if(abs(x-local_x) >10.0 )
   {
     x = 0;
   }
+  else if (abs(x-local_x) >7.0 )
+  {
+    x = 5;
+  }
+  else if (abs(x-local_x) <1.5 )
+  {
+    x = local_x;
+  }
   else
   {
-    x = x;
+    x = 0.5*x;
   }
 
+// --y--
   if((y-local_y)> 10.0)
   {
     y = 10.0;
@@ -357,9 +401,10 @@ void limitWin_location(float& x, float& y, float& z)
     y = y;
   }
 
+// --z --
   if(z >3.0 )
   {
-    z = 230;
+    z = 2;
   }
   else if(z < 1.0)
   {

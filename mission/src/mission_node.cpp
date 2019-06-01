@@ -212,6 +212,7 @@ int main(int argc, char ** argv)
                      }
                      publish_pos_sp(rate);
                    } 
+                   window_scan (search_pos,search_dir,yawt,rate);
                    publish_pos_sp(rate);                
                  }
 
@@ -245,6 +246,7 @@ int main(int argc, char ** argv)
                     pose_sp.pose.position.x = WXm;
                     pose_sp.pose.position.y = 0.0;
                     pose_sp.pose.position.z = WZm;
+                    pose_sp.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yawt);
                     publish_pos_sp(rate);
                     ROS_INFO("Aligning vertically @ %f",WZm);
                   }
@@ -255,6 +257,7 @@ int main(int argc, char ** argv)
                     pose_sp.pose.position.x = WXm;
                     pose_sp.pose.position.y = WYm;
                     pose_sp.pose.position.z = WZm;
+                    pose_sp.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yawt);
                     publish_pos_sp(rate);
                     ROS_INFO("Aligning sideway @ %f",WYm);
                   } 
@@ -409,4 +412,109 @@ void publish_pos_sp(ros::Rate r)
   pose_sp_pub.publish(pose_sp);
   ros::spinOnce();
   r.sleep(); 
+}
+
+void window_scan ( int& p, int& d ,float yaw,ros::Rate r )
+{ 
+  float x =0;
+  float y = 0;
+  float z = 1.5;
+  if (p == 0 && d== 1)
+  {
+    y = 1.0f;
+  }
+  else if (p == 0 && d== -1)
+  {
+    y = -1.0f;
+  }
+ else if (p == 1 && d== 1)
+  {
+    y = 2.0f;
+  }    
+ else if (p == 1 && d== -1)
+  {
+    y = 0.0f;
+  }
+ else if (p == -1 && d== 1)
+  {
+    y = 0.0f;
+  }
+ else if (p == -1 && d== -1)
+  {
+   y = -2.0f;
+  } 
+ else if (p == 2 && d== 1)
+  {
+    y = 2.0f;
+  }
+ else if (p == 2 && d== -1)
+  {
+    y = 1.0f;
+  }
+ else if (p == -2 && d== -1)
+  {
+   y = -2.0f;
+  } 
+  else if (p == -2 && d== 1)
+  {
+   y = -1.0f;
+  } 
+  else
+  {
+    y = 0.0f;
+  }   
+  pose_sp.header.stamp = ros::Time::now();
+  pose_sp.header.frame_id = "map";
+  pose_sp.pose.position.x = x;
+  pose_sp.pose.position.y = y;
+  pose_sp.pose.position.z = z ;
+  pose_sp.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yaw); 
+  publish_pos_sp(r); 
+  
+  if (p == 0 && d == 1 && (abs(local_y-1.0)<0.3))
+  {
+    p = 1;
+    d = 1;
+  }
+  else if (p == 0 && d == -1 && (abs(local_y+1.0)<0.3))
+  {
+    p = -1;
+    d = -1;
+  } 
+  else if (p == 1 && d == 1 && (abs(local_y-2.0)<0.3))
+  {
+    p = 2;
+    d = -1;
+  }
+ else if (p == 1 && d == -1 && (abs(local_y)<0.3))
+  {
+    p = 0;
+    d = -1;
+  } 
+ else if (p == -1 && d == 1 && (abs(local_y)<0.3))
+  {
+    p = 0;
+    d = 1;
+  } 
+  else if (p == -1 && d == -1 && (abs(local_y+2.0)<0.3))
+  {
+    p = -2;
+    d = 1;
+  } 
+  else if (p == 2 && d == -1 && (abs(local_y-1.0)<0.3))
+  {
+    p = 1;
+    d = -1;
+  } 
+  else if (p == -2 && d == 1 && (abs(local_y+1.0)<0.3))
+  {
+    p = -1;
+    d = 1;
+  } 
+  else
+  {
+    p = p;
+    d = d;
+  }
+  publish_pos_sp(r);        
 }

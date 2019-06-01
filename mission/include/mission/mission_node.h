@@ -119,3 +119,4 @@ void wait_cycle(int cycle, ros::Rate r );
 void limitWin_location(float& x, float& y, float& z);
 void winlocation_stat(windows wds,float& Wxm, float& Wym, float& Wzm, float& Xt,float& Yt, float& Zt, float& Xvar, float& Yvar,float& Zvar );
 
+void publish_pos_sp(ros::Rate r);

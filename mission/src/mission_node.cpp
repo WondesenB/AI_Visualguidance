@@ -212,7 +212,7 @@ int main(int argc, char ** argv)
                      }
                      publish_pos_sp(rate);
                    } 
-                   window_scan (search_pos,search_dir,yawt,rate);
+                   window_scan (search_pos,search_dir,yawt,rate,win_tracking_cmd);
                    publish_pos_sp(rate);                
                  }
 
@@ -414,7 +414,7 @@ void publish_pos_sp(ros::Rate r)
   r.sleep(); 
 }
 
-void window_scan ( int& p, int& d ,float yaw,ros::Rate r )
+void window_scan ( int& p, int& d ,float yaw,ros::Rate r, track_window_cmd& window_cmd )
 { 
   float x =0;
   float y = 0;
@@ -473,48 +473,98 @@ void window_scan ( int& p, int& d ,float yaw,ros::Rate r )
   
   if (p == 0 && d == 1 && (abs(local_y-1.0)<0.3))
   {
+    pause4search(100,r,window_cmd);
     p = 1;
     d = 1;
   }
   else if (p == 0 && d == -1 && (abs(local_y+1.0)<0.3))
   {
+    pause4search(100,r,window_cmd);
     p = -1;
     d = -1;
   } 
   else if (p == 1 && d == 1 && (abs(local_y-2.0)<0.3))
   {
+    pause4search(100,r,window_cmd);
     p = 2;
     d = -1;
   }
  else if (p == 1 && d == -1 && (abs(local_y)<0.3))
   {
+    pause4search(100,r,window_cmd);
     p = 0;
     d = -1;
   } 
  else if (p == -1 && d == 1 && (abs(local_y)<0.3))
   {
+    pause4search(100,r,window_cmd);
     p = 0;
     d = 1;
   } 
   else if (p == -1 && d == -1 && (abs(local_y+2.0)<0.3))
   {
+    pause4search(100,r,window_cmd);
     p = -2;
     d = 1;
   } 
   else if (p == 2 && d == -1 && (abs(local_y-1.0)<0.3))
   {
+    pause4search(100,r,window_cmd);
     p = 1;
     d = -1;
   } 
   else if (p == -2 && d == 1 && (abs(local_y+1.0)<0.3))
   {
+    pause4search(100,r,window_cmd);
     p = -1;
+    d = 1;
+  } 
+ else if ( (local_y-2.0)>0.3)
+  {
+    pause4search(100,r,window_cmd);
+    p = 2;
+    d = -1;
+  } 
+ else if ((local_y+2.0)< -0.3)
+  {
+    pause4search(100,r,window_cmd);
+    p = -2;
     d = 1;
   } 
   else
   {
+    pause4search(100,r,window_cmd);
     p = p;
     d = d;
   }
   publish_pos_sp(r);        
 }
+
+void pause4search(int cycle, ros::Rate r , track_window_cmd& win_cmd )
+{
+  int found = 0;
+
+ for (int i=0; i<cycle; ++i)
+  {
+     pose_sp_pub.publish(pose_sp);
+     ros::spinOnce();
+     r.sleep(); 
+     for (int j =0; j< dobj.object.size(); ++j)
+     {
+        std::string s = dobj.object[j].obj_name.c_str();
+       if (s.compare(target_name)==0)
+       {
+          wins.wndw.clear();
+          wins.wndw.push_back({dobj.object[j].X,dobj.object[j].Y,dobj.object[j].Z});
+          ROS_INFO("Last %s  found @ (%f, %f, %f)",dobj.object[j].obj_name.c_str(), dobj.object[j].X,dobj.object[j].Y,dobj.object[j].Z);
+          win_cmd = align;
+          found =1;
+          break;
+       }
+     }
+    if(found == 1)
+    {
+      break;
+    }    
+  }
+} 

@@ -118,6 +118,6 @@ void wait_cycle(int cycle, ros::Rate r );
 
 void limitWin_location(float& x, float& y, float& z);
 void winlocation_stat(windows wds,float& Wxm, float& Wym, float& Wzm, float& Xt,float& Yt, float& Zt, float& Xvar, float& Yvar,float& Zvar );
-
 void publish_pos_sp(ros::Rate r);
-void window_scan (int& p, int& d ,float yaw,ros::Rate r);
+void window_scan (int& p, int& d ,float yaw,ros::Rate r,track_window_cmd& window_cmd);
+void pause4search(int cycle, ros::Rate r, track_window_cmd& win_cmd);

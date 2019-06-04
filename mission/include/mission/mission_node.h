@@ -2,6 +2,7 @@
 #include <ros/ros.h>
 
 #include <geometry_msgs/PoseStamped.h>
+#include <sensor_msgs/Image.h>
  //#include <geometry_msgs/TwistStamped.h>
 #include <mavros_msgs/CommandBool.h>
 
@@ -14,9 +15,9 @@
 #include <tf/transform_datatypes.h>
 #include <sensor_msgs/Imu.h>
 #include <tf/tf.h>
-
+// custom messages
 #include <local_mapping/detected_object.h>
-
+#include <srf08_ranging/obstacle_distance.h>
 
 #include <string>
 #include "std_msgs/String.h"
@@ -26,7 +27,10 @@
 #include <vector>
 #include <algorithm>
 
-
+//
+int u;
+int v;
+//
 int landing = 0;
 int count = 0;
 float takeoff_alt = 1.5;
@@ -36,8 +40,8 @@ float local_z;
 float yaw_ornt;
 float yawt;       
 
-int obstacle_up, obstacle_right, obstacle_left;
-float obstacle_front;
+int obstacle_up =2.0; int obstacle_right =2.0; int obstacle_left =2.0;
+float obstacle_front = 2.0; float obstacle_down = 2.0;
 
 mavros_msgs::State current_state;
 geometry_msgs::PoseStamped pose_sp;
@@ -106,6 +110,7 @@ struct windows
 	std::vector<windows_location> wndw;
 }wins;
 
+float Nwpx, Nwpy, Nwpz; 
 float WXm, WYm, WZm, Xtot, Ytot, Ztot;
 float Xvar_max = 0.0; 
 float Yvar_max = 0.0;
@@ -119,5 +124,6 @@ void wait_cycle(int cycle, ros::Rate r );
 void limitWin_location(float& x, float& y, float& z);
 void winlocation_stat(windows wds,float& Wxm, float& Wym, float& Wzm, float& Xt,float& Yt, float& Zt, float& Xvar, float& Yvar,float& Zvar );
 void publish_pos_sp(ros::Rate r);
-void window_scan (int& p, int& d ,float yaw,ros::Rate r,track_window_cmd& window_cmd);
+void window_scan (int& p, int& d ,float& x, float& y, float& z,float yaw,ros::Rate r,track_window_cmd& window_cmd);
 void pause4search(int cycle, ros::Rate r, track_window_cmd& win_cmd);
+void find_nextsafe_wp (float& wpx, float& wpy, float& wpz , mission_type mission, track_window_cmd& win_cmd, int& d); 

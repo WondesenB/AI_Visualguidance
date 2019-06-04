@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   local_mapping
+  srf08_ranging
 )
 
 ## System dependencies are found with CMake's conventions

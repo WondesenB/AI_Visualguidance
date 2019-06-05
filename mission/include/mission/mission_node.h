@@ -40,8 +40,8 @@ float local_z;
 float yaw_ornt;
 float yawt;       
 
-int obstacle_up =2.0; int obstacle_right =2.0; int obstacle_left =2.0;
-float obstacle_front = 2.0; float obstacle_down = 2.0;
+int obstacle_up =200.0; int obstacle_right =200.0; int obstacle_left =200.0;
+float obstacle_front = 200.0; float obstacle_down = 200.0;
 
 mavros_msgs::State current_state;
 geometry_msgs::PoseStamped pose_sp;

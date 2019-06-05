@@ -20,7 +20,7 @@ void depth_callback(const sensor_msgs::Image::ConstPtr& msg)
     if(std::isfinite(depths[centerIdx]))
     {
 
-    obstacle_front = depths[centerIdx];
+    obstacle_front = 100.0*depths[centerIdx];
     //ROS_INFO("Front obstacle distance : %g m", depths[centerIdx]);
     }
 }
@@ -205,7 +205,7 @@ int main(int argc, char ** argv)
           Nwpx = 0.0;
           Nwpy = 0.0;
           Nwpz = takeoff_alt;
-          //find_nextsafe_wp(Nwpx,Nwpy, Nwpz,mission,win_tracking_cmd,search_dir);
+          find_nextsafe_wp(Nwpx,Nwpy, Nwpz,mission,win_tracking_cmd,search_dir);
           pose_sp.header.stamp = ros::Time::now();
           pose_sp.header.frame_id = "map";
           pose_sp.pose.position.x = Nwpx;
@@ -247,7 +247,7 @@ int main(int argc, char ** argv)
                      }
                      publish_pos_sp(rate);
                    } 
-                   //find_nextsafe_wp(Nwpx,Nwpy, Nwpz,mission,win_tracking_cmd,search_dir);
+                   find_nextsafe_wp(Nwpx,Nwpy, Nwpz,mission,win_tracking_cmd,search_dir);
                    window_scan (search_pos,search_dir,Nwpx,Nwpy,Nwpz,yawt,rate,win_tracking_cmd);
                    publish_pos_sp(rate);                
                  }
@@ -265,7 +265,7 @@ int main(int argc, char ** argv)
                    WYm = wins.wndw[0].win_Yc ;
                    WZm = wins.wndw[0].win_Zc ;
                    limitWin_location(WXm, WYm, WZm);
-                   //find_nextsafe_wp(WXm,WYm, WZm,mission,win_tracking_cmd,search_dir);
+                   find_nextsafe_wp(WXm,WYm, WZm,mission,win_tracking_cmd,search_dir);
                    ROS_INFO("Aligning");
                  }
                  else
@@ -327,7 +327,7 @@ int main(int argc, char ** argv)
                    WYm = wins.wndw[0].win_Yc ;
                    WZm = wins.wndw[0].win_Zc ;
                    limitWin_location(WXm, WYm, WZm);
-                   //find_nextsafe_wp(WXm,WYm, WZm,mission,win_tracking_cmd,search_dir);
+                   find_nextsafe_wp(WXm,WYm, WZm,mission,win_tracking_cmd,search_dir);
                  }
                  else
                  {

@@ -50,6 +50,7 @@ ros::Publisher pose_sp_pub;
 enum mission_type
 {
 mission_takeoff = 0,
+mission_wall,
 mission_window,
 mission_pole,
 mission_pipe,

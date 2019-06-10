@@ -208,19 +208,19 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "local_mapping_node");
 
   ros::NodeHandle n;
-  ros::Subscriber sub               = n.subscribe("/zed/zed_node/depth/depth_registered", 10, camera_depth_callback);
-  ros::Subscriber subpcl            = n.subscribe("/zed/zed_node/point_cloud/cloud_registered", 10, pixelTo3DXYZ_callback);
-  ros::Subscriber subcenter         = n.subscribe("/darknet_ros/bounding_boxes", 10, boundingbox_callback); // checking data subscription from objected detector package
+  ros::Subscriber sub               = n.subscribe("/zed/zed_node/depth/depth_registered", 100, camera_depth_callback);
+  ros::Subscriber subpcl            = n.subscribe("/zed/zed_node/point_cloud/cloud_registered", 100, pixelTo3DXYZ_callback);
+  ros::Subscriber subcenter         = n.subscribe("/darknet_ros/bounding_boxes", 100, boundingbox_callback); // checking data subscription from objected detector package
   // ros::Subscriber subOdom           = n.subscribe("/zed/zed_node/odom", 10, odomCallback);
-  ros::Subscriber subPose           = n.subscribe("/zed/zed_node/pose", 10, poseCallback);
+  ros::Subscriber subPose           = n.subscribe("/zed/zed_node/pose", 100, poseCallback);
   // ros::Subscriber subRightRectified = n.subscribe("/zed/right/image_rect_color", 10,imageRightRectifiedCallback);
   // ros::Subscriber subLeftRectified  = n.subscribe("/zed/left/image_rect_color", 10,imageLeftRectifiedCallback);
   // ros::Subscriber subObj_num        = n.subscribe("/darknet_ros/found_object",10, numOfdetectedObjetCallback);
 
   ros::Publisher local_pos_pub = n.advertise<geometry_msgs::PoseStamped>
-            ("/mavros/vision_pose/pose", 100); //mocap vision_pose /mavros/vision_pose/pose
+            ("/mavros/vision_pose/pose", 1000); //mocap vision_pose /mavros/vision_pose/pose
 
- ros::Publisher detected_obj_pub = n.advertise<local_mapping::detected_object>("/detected_object/info",10);
+ ros::Publisher detected_obj_pub = n.advertise<local_mapping::detected_object>("/detected_object/info",1000);
  local_mapping::detected_object  detected_obj;
  local_mapping::detected_object_info  detected_obj_info;
 
@@ -230,7 +230,7 @@ int main(int argc, char **argv)
  // tf::TransformBroadcaster zedbroadcaster;
   zed2dronebase_transform ();
 
- ros::Rate rate(70.0); 
+ ros::Rate rate(100.0); 
 
  
  geometry_msgs::PoseStamped loc_pos;

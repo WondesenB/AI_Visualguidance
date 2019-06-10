@@ -35,9 +35,20 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES darknet_ros_msgs
-  CATKIN_DEPENDS roscpp rospy std_msgs darknet_ros_msgs
+  CATKIN_DEPENDS 
+  roscpp
+  rospy
+  std_msgs
+  geometry_msgs
+  sensor_msgs
+  darknet_ros_msgs
+  message_runtime
+  tf
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
 #  DEPENDS system_lib
-CATKIN_DEPENDS message_runtime
+#CATKIN_DEPENDS 
 )
 
 
@@ -49,3 +60,5 @@ include_directories(
 add_executable(local_mapping_node  src/local_mapping_node.cpp)
 target_link_libraries(local_mapping_node  ${catkin_LIBRARIES})
 
+add_executable(old_pathfinder src/old_pathfinder_node.cpp)
+target_link_libraries(old_pathfinder ${catkin_LIBRARIES})

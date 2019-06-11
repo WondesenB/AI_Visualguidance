@@ -71,7 +71,7 @@ class PathFinder
 public:
        
 	vector<string> visited_object;
-	vector<string> object_list = {"wall", "window", "pole", "pipe", "tree", "net", "land"};
+	vector<string> object_list = {"window", "wall", "pole", "pipe", "tree", "net", "land"};
 
 	//publishers
 	//ros::Publisher local_setpos_pub;

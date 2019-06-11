@@ -212,9 +212,15 @@ int main(int argc, char ** argv)
                      }
                      publish_pos_sp(rate);
                    } 
-                   publish_pos_sp(rate);                
+                   publish_pos_sp(rate); 
+                   if ((ros::Time::now()- begin)>ros::Duration(60.0))
+                    {   
+                       ROS_INFO("Time is over, changing to auto landing mode ");
+                       mission = mission_landing;
+                       break;
+                    }
+                                                
                  }
-
                   publish_pos_sp(rate);
                   break;
 
@@ -270,11 +276,7 @@ int main(int argc, char ** argv)
                   publish_pos_sp(rate);
                   win_tracking_cmd = approach; //search
                  }
-            			/*if ((ros::Time::now()- begin)>ros::Duration(20.0))
-            			  {
-            			   mission = mission_landing;
-            			  }
-            			 */
+
 
                 break;
 

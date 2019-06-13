@@ -14,6 +14,7 @@
 #include <tf/transform_datatypes.h>
 #include <sensor_msgs/Imu.h>
 #include <tf/tf.h>
+int start_timer = 1;
 int landing = 0;
 int count = 0;
 float takeoff_alt = 1.5;

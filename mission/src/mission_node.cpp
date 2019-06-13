@@ -118,6 +118,8 @@ int main(int argc, char ** argv)
     yawt = yaw_ornt;
   }
 
+  ros::Time begin = ros::Time::now();
+
   mission_type mission = mission_takeoff;
 
   
@@ -134,24 +136,30 @@ int main(int argc, char ** argv)
           pose.pose.position.y = 0;
           pose.pose.position.z = takeoff_alt+0.3 ;
           pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yawt);
-          ROS_INFO("takeoff to altitude: %f ", takeoff_alt);
-        if (local_z >= takeoff_alt)
-        {
-          for (int i=0; i<300; ++i)
-          {
-           ROS_INFO("Hovering ");
-           pose_sp_pub.publish(pose);
-           ros::spinOnce();
-           rate.sleep(); 
-          }
-         mission = mission_landing;
-        }
+          pose_sp_pub.publish(pose);
+          ros::spinOnce();
+          rate.sleep();
 
-        pose_sp_pub.publish(pose);
-        ros::spinOnce();
-        rate.sleep(); 
-        count = 1;
-        break;
+          if ((local_z >= takeoff_alt) && (start_timer == 1))
+          {
+            begin = ros::Time::now();
+            start_timer = 0;
+            ROS_INFO("Hovering");
+          }
+          if(start_timer == 1)
+          {
+            ROS_INFO("takeoff to altitude: %f ", takeoff_alt); 
+          }  
+          if ((ros::Time::now()- begin)>ros::Duration(60.0))
+          {   
+             ROS_INFO("Time is over, changing to auto landing mode ");
+             mission = mission_landing;
+          }  
+          pose_sp_pub.publish(pose);
+          ros::spinOnce();
+          rate.sleep(); 
+          count = 1;
+          break;
     case mission_window:
           // pass through window
          break;

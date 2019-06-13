@@ -35,18 +35,18 @@ int main(int argc, char ** argv)
   ros::init(argc, argv, "mission_node");
   ros::NodeHandle nh;
   // subscriber
-  ros::Subscriber state_sub = nh.subscribe < mavros_msgs::State >("mavros/state", 100, state_cb);
-  ros::Subscriber local_pos_sub = nh.subscribe < geometry_msgs::PoseStamped >("mavros/local_position/pose", 100, local_position_cb);
-  ros::Subscriber inertial_sub = nh.subscribe<sensor_msgs::Imu>("mavros/imu/data",100,inertial_cb);
+  ros::Subscriber state_sub = nh.subscribe < mavros_msgs::State >("mavros/state", 1000, state_cb);
+  ros::Subscriber local_pos_sub = nh.subscribe < geometry_msgs::PoseStamped >("mavros/local_position/pose", 1000, local_position_cb);
+  ros::Subscriber inertial_sub = nh.subscribe<sensor_msgs::Imu>("mavros/imu/data",1000,inertial_cb);
   //publisher
-  ros::Publisher pose_sp_pub = nh.advertise < geometry_msgs::PoseStamped >("mavros/setpoint_position/local", 100);
+  ros::Publisher pose_sp_pub = nh.advertise < geometry_msgs::PoseStamped >("mavros/setpoint_position/local", 1000);
   //service
   ros::ServiceClient arming_client = nh.serviceClient < mavros_msgs::CommandBool >("mavros/cmd/arming");
   ros::ServiceClient land_client = nh.serviceClient < mavros_msgs::CommandTOL >("mavros/cmd/land");
   ros::ServiceClient set_mode_client = nh.serviceClient < mavros_msgs::SetMode >("mavros/set_mode");
 
   //the setpoint publishing rate MUST be faster than 2Hz
-  ros::Rate rate(50.0);
+  ros::Rate rate(100.0);
 
   // wait for FCU connection
   while (ros::ok() && !current_state.connected) 

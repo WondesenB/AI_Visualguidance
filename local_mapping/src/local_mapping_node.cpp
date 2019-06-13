@@ -41,7 +41,10 @@ void camera_depth_callback(const sensor_msgs::Image::ConstPtr& msg)
     int centerIdx = u + msg->width * v;
 
     // Output the measure
+    if(std::isfinite(depths[centerIdx]))
+    {
     ROS_INFO("Center distance : %g m", depths[centerIdx]);
+    }
 }
 
 void odomCallback(const nav_msgs::Odometry::ConstPtr& msg) {
@@ -172,8 +175,10 @@ void pixelTo3DXYZ_callback(const sensor_msgs::PointCloud2 pointCL)
       memcpy(&Zzmin, &pointCL.data[arrayPosZZmin], sizeof(float));
       area = (2.0f*abs(Y-Yymin))*(2.0f*abs(Z-Zzmin));
 
-
+     if (std::isfinite(X) && std::isfinite(Y) && std::isfinite(Z) )
+     {
       ob.object.push_back({obb->obj[i].name.c_str(),Yymin,Zzmin,X,Y,Z,dis,area});
+     } 
       // ROS_INFO("%s Y_min is @ (%f,%f)",obb->obj[i].name.c_str(),obb->obj[i].u_min,obb->obj[i].v_c);   
       // ROS_INFO("detected object info,name = %s , XYZ = (%f,%f,%f) , Y_min = %f, distance = %f ",
       //   ob.object[i].name.c_str(),ob.object[i].X,ob.object[i].Y,ob.object[i].Z,ob.object[i].Y_min,ob.object[i].distance);

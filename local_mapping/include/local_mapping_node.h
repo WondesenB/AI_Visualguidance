@@ -30,7 +30,7 @@
 #include <math.h>
 #include <vector>
 #include <algorithm>
-
+#include <cfloat>
 //
 #include <tf/transform_broadcaster.h>
 // #include <tf/transform_listener.h>

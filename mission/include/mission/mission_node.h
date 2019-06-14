@@ -14,6 +14,16 @@
 #include <tf/transform_datatypes.h>
 #include <sensor_msgs/Imu.h>
 #include <tf/tf.h>
+
+#include <local_mapping/detected_object.h>
+#include <string>
+#include "std_msgs/String.h"
+#include "std_msgs/Int8.h"
+#include <cstddef>
+#include <math.h>
+#include <vector>
+#include <algorithm>
+
 int start_timer = 1;
 int landing = 0;
 int count = 0;
@@ -28,6 +38,8 @@ int obstacle_up, obstacle_right, obstacle_left;
 float obstacle_front;
 
 mavros_msgs::State current_state;
+geometry_msgs::PoseStamped pose_sp;
+ros::Publisher pose_sp_pub;
 
 enum mission_type
 {
@@ -40,8 +52,65 @@ mission_net ,
 mission_landing	
 };
 
+enum track_window_cmd
+{
+ search,
+ align,
+ approach,
+};
+
+enum window_tracking_state
+{
+ searching,
+ aligning,
+ approaching,
+ passed
+};
+
 enum mission_state
 {
 success,
 fail
 };
+
+
+struct detected_object_detail
+{
+std::string obj_name;
+float  Ymin;
+float  Zmin;
+float  X;
+float  Y;
+float  Z;
+float  distance;
+float  area;	
+};
+
+struct detected_objects
+{
+ std::vector<detected_object_detail> object;
+}dobj;
+
+
+struct windows_location
+{
+  float win_Xc;
+  float win_Yc;
+  float win_Zc;
+  
+};
+
+struct windows
+{
+	std::vector<windows_location> wndw;
+}wins;
+
+float WXm, WYm, WZm;
+
+float Xcam, Ycam, Zcam;
+std::string target_name = "window";
+
+void wait_cycle(int cycle, ros::Rate r );
+void wait_time(float time, ros::Rate r );
+void limitWin_location(float& x, float& y, float& z);
+void publish_pos_sp(ros::Rate r);

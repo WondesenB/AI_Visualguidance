@@ -15,7 +15,7 @@
 #include <tf/tf.h>
 
 int count=0;
-float takeoff_alt = 2.0;
+float takeoff_alt = 1.3;
 float local_x;
 float local_y;
 float local_z;
@@ -153,7 +153,7 @@ int main(int argc, char ** argv)
     pose.header.frame_id = "map";
     pose.pose.position.x = 0;
     pose.pose.position.y = 0;
-    pose.pose.position.z = takeoff_alt;
+    pose.pose.position.z = takeoff_alt+0.3;
     pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yawt);
     local_pos_pub.publish(pose);
     ros::spinOnce();

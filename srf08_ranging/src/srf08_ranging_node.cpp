@@ -82,7 +82,7 @@ int srf08_range(int address)
     exit(1);
   }
 
-  usleep(650000); // this sleep waits for the ping to come back
+  usleep(100000); //usleep(650000); // this sleep waits for the ping to come back
 
   buf[0] = 0; // This is the register we wish to read from
 

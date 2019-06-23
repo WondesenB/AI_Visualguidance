@@ -226,7 +226,7 @@ int main(int argc, char ** argv)
     case mission_wall:
           landing = 0;
           Nwpx = 0.0;
-          Nwpy = -4.0;
+          Nwpy = -1.0;
           Nwpz = takeoff_alt;    
           while(abs(local_y-Nwpy)>0.3)
           {
@@ -240,7 +240,7 @@ int main(int argc, char ** argv)
             publish_pos_sp(rate);
             ROS_INFO("looking for wall passing  path");
           } 
-          Nwpx = 4.0;
+          Nwpx = 2.0;
           while(abs(local_x-Nwpx)>0.3)
           {
           

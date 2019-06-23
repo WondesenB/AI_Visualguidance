@@ -1,5 +1,7 @@
 #include "mission_node.h"
 
+int search_pos= 0;
+int search_dir = 1;
 // subscriber callback function
 void depth_callback(const sensor_msgs::Image::ConstPtr& msg)
 {
@@ -214,13 +216,67 @@ int main(int argc, char ** argv)
         {
           ROS_INFO("Hovering ");
           wait_time(10,rate);
-          mission = mission_window;
+          mission = mission_wall;
+          //mission = mission_window;
         }
 
         publish_pos_sp(rate); 
         count = 1;
         break;
-
+    case mission_wall:
+          landing = 0;
+          Nwpx = 0.0;
+          Nwpy = -4.0;
+          Nwpz = takeoff_alt;    
+          while(abs(local_y-Nwpy)>0.3)
+          {
+            find_nextsafe_wp(Nwpx,Nwpy, Nwpz,mission,win_tracking_cmd,search_dir);
+            pose_sp.header.stamp = ros::Time::now();
+            pose_sp.header.frame_id = "map";
+            pose_sp.pose.position.x = Nwpx;
+            pose_sp.pose.position.y = Nwpy;
+            pose_sp.pose.position.z = Nwpz;
+            pose_sp.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yawt);
+            publish_pos_sp(rate);
+            ROS_INFO("looking for wall passing  path");
+          } 
+          Nwpx = 4.0;
+          while(abs(local_x-Nwpx)>0.3)
+          {
+          
+            find_nextsafe_wp(Nwpx,Nwpy, Nwpz,mission,win_tracking_cmd,search_dir);
+            pose_sp.header.stamp = ros::Time::now();
+            pose_sp.header.frame_id = "map";
+            pose_sp.pose.position.x = Nwpx;
+            pose_sp.pose.position.y = Nwpy;
+            pose_sp.pose.position.z = Nwpz;
+            pose_sp.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yawt);
+            publish_pos_sp(rate);
+            ROS_INFO("passing wall");
+          }
+          Nwpy = 0.0;
+          while(abs(local_y-Nwpy)>0.3)
+          {
+            
+            find_nextsafe_wp(Nwpx,Nwpy, Nwpz,mission,win_tracking_cmd,search_dir);
+            pose_sp.header.stamp = ros::Time::now();
+            pose_sp.header.frame_id = "map";
+            pose_sp.pose.position.x = Nwpx;
+            pose_sp.pose.position.y = Nwpy;
+            pose_sp.pose.position.z = Nwpz;
+            pose_sp.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yawt);
+            publish_pos_sp(rate);
+            ROS_INFO("searching for window");
+            if (abs(local_y-Nwpy)<0.4)
+            {
+             mission = mission_window; 
+            }
+          }
+          if (abs(local_y-Nwpy)<0.3)
+          {
+           mission = mission_window; 
+          }                                        
+         break; 
     case mission_window:
           // pass through window
           landing = 0;

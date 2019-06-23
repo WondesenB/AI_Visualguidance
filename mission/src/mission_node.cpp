@@ -18,7 +18,7 @@ void depth_callback(const sensor_msgs::Image::ConstPtr& msg)
     if(std::isfinite(depths[centerIdx]))
     {
 
-    obstacle_front = depths[centerIdx];
+    obstacle_front = 100.0*depths[centerIdx];
     //ROS_INFO("Front obstacle distance : %g m", depths[centerIdx]);
     }
 }

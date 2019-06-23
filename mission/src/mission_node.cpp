@@ -1,6 +1,36 @@
 #include "mission_node.h"
 
 // subscriber callback function
+void depth_callback(const sensor_msgs::Image::ConstPtr& msg)
+{
+    // Get a pointer to the depth values casting the data
+    // pointer to floating point
+    float* depths = (float*)(&msg->data[0]);
+
+    // Image coordinates of the center pixel
+     u = msg->width / 2;
+     v = msg->height / 2;
+
+    // Linear index of the center pixel
+    int centerIdx = u + msg->width * v;
+
+    // Output the measure
+    if(std::isfinite(depths[centerIdx]))
+    {
+
+    obstacle_front = depths[centerIdx];
+    //ROS_INFO("Front obstacle distance : %g m", depths[centerIdx]);
+    }
+}
+void obstacle_dis_cb(const srf08_ranging::obstacle_distance::ConstPtr& msg)
+{
+   obstacle_up = msg->up;
+   obstacle_right = msg->right;
+   obstacle_left = msg->left;
+  // ROS_INFO("Obstacle info, up: %d cm, right: %d cm, left: %d cm ",obstacle_up,obstacle_right,obstacle_left);
+
+}
+
 void detected_object_cb(const local_mapping::detected_object::ConstPtr&  msg)
 {
    
@@ -73,7 +103,9 @@ int main(int argc, char ** argv)
   ros::Subscriber local_pos_sub = nh.subscribe < geometry_msgs::PoseStamped >("mavros/local_position/pose", 1000, local_position_cb);
   ros::Subscriber inertial_sub = nh.subscribe<sensor_msgs::Imu>("mavros/imu/data",1000,inertial_cb);
   ros::Subscriber subobj         = nh.subscribe<local_mapping::detected_object>("/detected_object/info", 100, detected_object_cb);
-  ros::Subscriber local_vispos_sub = nh.subscribe<geometry_msgs::PoseStamped>("/mavros/vision_pose/pose", 10,camera_pos_cb); //mocap vision_pose /mavros/vision_pose/pose
+  ros::Subscriber local_vispos_sub = nh.subscribe<geometry_msgs::PoseStamped>("/mavros/vision_pose/pose", 100,camera_pos_cb); //mocap vision_pose /mavros/vision_pose/pose
+  ros::Subscriber obstacle_distance_sub = nh.subscribe<srf08_ranging::obstacle_distance>("/obstacle_distance/info", 100,obstacle_dis_cb);
+  ros::Subscriber depth_sub               = nh.subscribe("/zed/zed_node/depth/depth_registered", 100, depth_callback);
   //publisher
   pose_sp_pub = nh.advertise < geometry_msgs::PoseStamped >("mavros/setpoint_position/local", 1000);
   //service
@@ -167,11 +199,15 @@ int main(int argc, char ** argv)
     {
     case mission_takeoff:
           landing = 0;
+          Nwpx = 0.0;
+          Nwpy = 0.0;
+          Nwpz = takeoff_alt;
+          //find_nextsafe_wp(Nwpx,Nwpy, Nwpz,mission,win_tracking_cmd,search_dir);
           pose_sp.header.stamp = ros::Time::now();
           pose_sp.header.frame_id = "map";
-          pose_sp.pose.position.x = 0;
-          pose_sp.pose.position.y = 0;
-          pose_sp.pose.position.z = takeoff_alt+0.3 ;
+          pose_sp.pose.position.x = Nwpx;
+          pose_sp.pose.position.y = Nwpy;
+          pose_sp.pose.position.z = Nwpz+0.3 ;
           pose_sp.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yawt);
           ROS_INFO("takeoff to altitude: %f ", takeoff_alt);
         if (local_z >= takeoff_alt)
@@ -184,6 +220,7 @@ int main(int argc, char ** argv)
         publish_pos_sp(rate); 
         count = 1;
         break;
+
     case mission_window:
           // pass through window
           landing = 0;
@@ -420,4 +457,67 @@ void publish_pos_sp(ros::Rate r)
   pose_sp_pub.publish(pose_sp);
   ros::spinOnce();
   r.sleep(); 
+}
+
+
+void find_nextsafe_wp (float& wpx, float& wpy, float& wpz, mission_type mission, track_window_cmd& win_cmd ,int& d)
+{
+ 
+ switch(mission)
+ {
+  case mission_takeoff: 
+       if (obstacle_up <= 100)
+       {
+        wpx = 0.0;
+        wpy = 0.0;
+        wpz = local_z-0.3;
+       }
+       else
+       {
+        wpx = wpx;
+        wpy = wpy;
+        wpz = wpz;
+       }
+       break;
+  case mission_window: 
+       if((win_cmd == search && d ==1 ) && obstacle_left <=100) 
+       {
+        d = -1;
+       }
+       if((win_cmd == search && d == -1 ) && obstacle_right <=100) 
+       {
+        d = 1;
+       } 
+      if((win_cmd == search ) && obstacle_front <=100) 
+       {
+        wpx = local_x-0.3;
+       }
+      if((win_cmd == search ) && obstacle_down <=100) 
+       {
+        wpz = local_z + 0.5;
+       } 
+      if((win_cmd == search ) && obstacle_up <=100) 
+       {
+        wpz = local_z - 0.5;
+       } 
+       if((win_cmd == align) && (obstacle_up <=100 || obstacle_right <=100  || obstacle_left <=100))  
+       {
+        wpx = local_x;
+        wpy = local_y;
+        wpz = local_z;  
+       }
+      if((win_cmd == approach) && (obstacle_front <=100 ))  
+       {
+        wpx = local_x;
+        wpy = local_y;
+        wpz = local_z;  
+       }                           
+       break;
+  case mission_pole:     
+       break; 
+  case mission_pipe:     
+       break;             
+ }
+
+
 }

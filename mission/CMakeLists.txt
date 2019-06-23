@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   local_mapping
+  srf08_ranging
   tf
 )
 
@@ -108,7 +109,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES mission
-  CATKIN_DEPENDS roscpp rospy std_msgs local_mapping geometry_msgs tf
+  CATKIN_DEPENDS roscpp rospy std_msgs local_mapping geometry_msgs srf08_ranging tf
 #  DEPENDS system_lib
 )
 

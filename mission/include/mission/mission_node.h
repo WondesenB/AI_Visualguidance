@@ -124,3 +124,4 @@ void wait_time(float time, ros::Rate r );
 void limitWin_location(float& x, float& y, float& z);
 void publish_pos_sp(ros::Rate r);
 void find_nextsafe_wp (float& wpx, float& wpy, float& wpz , mission_type mission, track_window_cmd& win_cmd, int& d); 
+void window_scan (int& p, int& d ,float yaw,ros::Rate r);

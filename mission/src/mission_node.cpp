@@ -2,6 +2,10 @@
 
 int search_pos= 0;
 int search_dir = 1;
+float p1  = 0.5f;
+float p_1 = -0.5f;
+float p2  = 1.0f;
+float p_2 = -1.0f;
 // subscriber callback function
 void depth_callback(const sensor_msgs::Image::ConstPtr& msg)
 {
@@ -305,7 +309,8 @@ int main(int argc, char ** argv)
 
                      }
                      publish_pos_sp(rate);
-                   } 
+                   }
+                   window_scan (search_pos,search_dir,yawt,rate); 
                    publish_pos_sp(rate);  
                    if ((ros::Time::now()- begin)>ros::Duration(90.0))
                     {   
@@ -346,6 +351,7 @@ int main(int argc, char ** argv)
                     pose_sp.pose.position.x = WXm;
                     pose_sp.pose.position.y = 0.0;
                     pose_sp.pose.position.z = WZm;
+                    pose_sp.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yawt);
                     publish_pos_sp(rate);
                     ROS_INFO("Aligning vertically @ %f",WZm);
                   }
@@ -576,4 +582,110 @@ void find_nextsafe_wp (float& wpx, float& wpy, float& wpz, mission_type mission,
  }
 
 
+}
+
+
+void window_scan ( int& p, int& d ,float yaw,ros::Rate r )
+{ 
+  float x =0;
+  float y = 0;
+  float z = 1.3;
+  if (p == 0 && d== 1)
+  {
+    y = p1;
+  }
+  else if (p == 0 && d== -1)
+  {
+    y = p_1;
+  }
+ else if (p == 1 && d== 1)
+  {
+    y = p2;
+  }    
+ else if (p == 1 && d== -1)
+  {
+    y = 0.0f;
+  }
+ else if (p == -1 && d== 1)
+  {
+    y = 0.0f;
+  }
+ else if (p == -1 && d== -1)
+  {
+   y = p_2;
+  } 
+ else if (p == 2 && d== 1)
+  {
+    y = p2;
+  }
+ else if (p == 2 && d== -1)
+  {
+    y = p1;
+  }
+ else if (p == -2 && d== -1)
+  {
+   y = p_2;
+  } 
+  else if (p == -2 && d== 1)
+  {
+   y = p_1;
+  } 
+  else
+  {
+    y = 0.0f;
+  }   
+  pose_sp.header.stamp = ros::Time::now();
+  pose_sp.header.frame_id = "map";
+  pose_sp.pose.position.x = x;
+  pose_sp.pose.position.y = y;
+  pose_sp.pose.position.z = z ;
+  pose_sp.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yaw); 
+  publish_pos_sp(r); 
+  
+  if (p == 0 && d == 1 && (abs(local_y-p1)<0.3))
+  {
+    p = 1;
+    d = 1;
+  }
+  else if (p == 0 && d == -1 && (abs(local_y-p_1)<0.3))
+  {
+    p = -1;
+    d = -1;
+  } 
+  else if (p == 1 && d == 1 && (abs(local_y-p2)<0.3))
+  {
+    p = 2;
+    d = -1;
+  }
+ else if (p == 1 && d == -1 && (abs(local_y)<0.3))
+  {
+    p = 0;
+    d = -1;
+  } 
+ else if (p == -1 && d == 1 && (abs(local_y)<0.3))
+  {
+    p = 0;
+    d = 1;
+  } 
+  else if (p == -1 && d == -1 && (abs(local_y-p_2)<0.3))
+  {
+    p = -2;
+    d = 1;
+  } 
+  else if (p == 2 && d == -1 && (abs(local_y-p1)<0.3))
+  {
+    p = 1;
+    d = -1;
+  } 
+  else if (p == -2 && d == 1 && (abs(local_y-p_1)<0.3))
+  {
+    p = -1;
+    d = 1;
+  } 
+  else
+  {
+    p = p;
+    d = d;
+  }
+  publish_pos_sp(r);        
 }

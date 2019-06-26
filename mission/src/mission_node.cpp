@@ -530,13 +530,13 @@ void find_nextsafe_wp (float& wpx, float& wpy, float& wpz, mission_type mission,
   case mission_takeoff: 
        if (obstacle_up <= 100)
        {
-        wpx = 0.0;
+        wpx = local_x;
         wpy = 0.0;
         wpz = local_z-0.3;
        }
        else
        {
-        wpx = wpx;
+        wpx = local_x;
         wpy = wpy;
         wpz = wpz;
        }
@@ -587,7 +587,7 @@ void find_nextsafe_wp (float& wpx, float& wpy, float& wpz, mission_type mission,
 
 void window_scan ( int& p, int& d ,float yaw,ros::Rate r )
 { 
-  float x =0;
+  float x =local_x;
   float y = 0;
   float z = 1.3;
   if (p == 0 && d== 1)

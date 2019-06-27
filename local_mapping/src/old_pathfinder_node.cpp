@@ -69,7 +69,7 @@ void BoundBox_info_cb(const local_mapping::detected_object::ConstPtr& msg)
 int main( int argc, char** argv ) {
 
     ros::init(argc, argv, "old_pathfinder_node");
-  const float ALT_LIMIT = 3.0;
+  const float ALT_LIMIT = 2.0;
     float yawt;
     int count; 
     int increm;   
@@ -79,7 +79,7 @@ int main( int argc, char** argv ) {
   const float ALT_SAFETY = 0.65;     //maintain safe altitude to avoid roof collision
   //const float ROLL_SAFETY = 0.75;
     bool obj_detected = false;
-  const float MARGIN = 0.5;
+  const float MARGIN = 0.3;
     float wall_dist;
     float chk_target_x;
     float chk_target_y;
@@ -333,7 +333,7 @@ while(ros::ok() && offb_set_mode.request.custom_mode == "OFFBOARD" )
     {        
         ROS_INFO_ONCE("MISSION SEGMENT :%s ",boxID->obj[0].obj_type.c_str());  
 
-        float target_x = boxID->obj[0].x_cnt + OBJ_CLR;
+        float target_x = 3.70; //boxID->obj[0].x_cnt + OBJ_CLR;
         increm = 1;     //intervals to check/recheck target center
         count = 0;
         while(ros::ok() && local_x < target_x && count <= 1)            
@@ -387,17 +387,16 @@ while(ros::ok() && offb_set_mode.request.custom_mode == "OFFBOARD" )
                 count++;
                //land at current location
                //# AUTO-LANDING
-               /*
+               
                ROS_INFO("LANDING...");
-              while (!(old_pathfinder_node.land_client.call(land_cmd) &&
-                  land_cmd.response.success)) {                    
+              while (!(land_client.call(land_cmd) && land_cmd.response.success)) {                    
                   pose.header.stamp = ros::Time::now();                  
                   pose.header.frame_id = "map";
                   local_setpos_pub.publish(pose);
                   ros::spinOnce();
                   rate.sleep();
               }
-              */
+              
                /*
               //# SETPOINT LANDING
               float land_z = -0.5;
@@ -1052,7 +1051,7 @@ while(ros::ok() && offb_set_mode.request.custom_mode == "OFFBOARD" )
         count = 0;
         while(!obj_detected && rot_l <= ROT_MAX){ 
             rot_l = count*PI/360.0;             
-            pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0,0,rot_l);
+            pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0,0,yawt);
             
             local_setpos_pub.publish(pose);
             
@@ -1076,7 +1075,7 @@ while(ros::ok() && offb_set_mode.request.custom_mode == "OFFBOARD" )
             rot_r = rot_l - count*PI/360.0; 
             pose.header.stamp = ros::Time::now();                
             pose.header.frame_id = "map";
-            pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0,0,rot_r);
+            pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0,0,yawt);
             
             local_setpos_pub.publish(pose);             
             ROS_INFO("Yaw right by angle:%f, count:%i",rot_r, count);

@@ -338,12 +338,28 @@ while(ros::ok() && offb_set_mode.request.custom_mode == "OFFBOARD" )
         count = 0;
         while(ros::ok() && local_x < target_x && count <= 1)            
         {
-
+          if (boxID->obj[0].y_cnt <= 1.5 &&  boxID->obj[0].y_cnt >= -1.5)
+          {
           target_y = boxID->obj[0].y_cnt;
+          }
+         else
+          {
+          target_y =local_y;
+          obj_detected = false;
+          }
+          if (boxID->obj[0].z_cnt <= 2 &&  boxID->obj[0].z_cnt >= 0.7)
+          {
           target_z = boxID->obj[0].z_cnt;
+          }
+         else
+          {
+          target_z = local_z;
+          obj_detected = false;
+          }
          
-              while(abs(target_y - local_y) > TOLRNCE ||
-                    abs(target_z - local_z) > TOLRNCE)
+         
+              while((abs(target_y - local_y) > TOLRNCE ||
+                    abs(target_z - local_z) > TOLRNCE) && obj_detected)
               {
                  pose.header.stamp = ros::Time::now();                  
                  pose.header.frame_id = "map";
@@ -359,7 +375,7 @@ while(ros::ok() && offb_set_mode.request.custom_mode == "OFFBOARD" )
               }  
 
              chk_target_x = 0.5*(target_x + local_x);
-              while(local_x <= count*target_x + increm*chk_target_x)
+              while((local_x <= count*target_x + increm*chk_target_x ) && obj_detected)
               {
                  pose.header.stamp = ros::Time::now();                  
                  pose.header.frame_id = "map";
@@ -387,7 +403,8 @@ while(ros::ok() && offb_set_mode.request.custom_mode == "OFFBOARD" )
                 count++;
                //land at current location
                //# AUTO-LANDING
-               
+               if(obj_detected)
+             {
                ROS_INFO("LANDING...");
               while (!(land_client.call(land_cmd) && land_cmd.response.success)) {                    
                   pose.header.stamp = ros::Time::now();                  
@@ -397,7 +414,8 @@ while(ros::ok() && offb_set_mode.request.custom_mode == "OFFBOARD" )
                   rate.sleep();
               }
               
-               /*
+              }
+              /*
               //# SETPOINT LANDING
               float land_z = -0.5;
                while(local_z >= land_z){
@@ -415,9 +433,9 @@ while(ros::ok() && offb_set_mode.request.custom_mode == "OFFBOARD" )
             
         }
 
-        old_pathfinder_node.object_list.erase(old_pathfinder_node.object_list.begin()); 
+        //old_pathfinder_node.object_list.erase(old_pathfinder_node.object_list.begin()); 
         //old_pathfinder_node.object_list.resize(old_pathfinder_node.object_list.size() - 1);
-        obj_detected = false;          
+        //obj_detected = false;          
 
     }else if(obj_detected && boxID->obj[0].obj_type.c_str() == pole)
     {

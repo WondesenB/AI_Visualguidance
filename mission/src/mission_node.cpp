@@ -37,7 +37,7 @@ void obstacle_dis_cb(const srf08_ranging::obstacle_distance::ConstPtr& msg)
 
 }
 
-void detected_object_cb(const local_mapping::detected_object::ConstPtr&  msg)
+void detected_object_cb(const object_localization::detected_object::ConstPtr&  msg)
 {
    
  
@@ -45,7 +45,7 @@ void detected_object_cb(const local_mapping::detected_object::ConstPtr&  msg)
   for (int i =0; i<msg->info.size();++i)
    {
 
-      const local_mapping::detected_object_info &data = msg->info[i];
+      const object_localization::detected_object_info &data = msg->info[i];
       std::string name_ = data.name;
       float  Ym         = data.Y_min;
       float  Zm         = data.Z_min;
@@ -108,7 +108,7 @@ int main(int argc, char ** argv)
   ros::Subscriber state_sub = nh.subscribe < mavros_msgs::State >("mavros/state", 1000, state_cb);
   ros::Subscriber local_pos_sub = nh.subscribe < geometry_msgs::PoseStamped >("mavros/local_position/pose", 1000, local_position_cb);
   ros::Subscriber inertial_sub = nh.subscribe<sensor_msgs::Imu>("mavros/imu/data",1000,inertial_cb);
-  ros::Subscriber subobj         = nh.subscribe<local_mapping::detected_object>("/detected_object/info", 100, detected_object_cb);
+  ros::Subscriber subobj         = nh.subscribe<object_localization::detected_object>("/detected_object/info", 100, detected_object_cb);
   ros::Subscriber local_vispos_sub = nh.subscribe<geometry_msgs::PoseStamped>("/mavros/vision_pose/pose", 100,camera_pos_cb); //mocap vision_pose /mavros/vision_pose/pose
   ros::Subscriber obstacle_distance_sub = nh.subscribe<srf08_ranging::obstacle_distance>("/obstacle_distance/info", 100,obstacle_dis_cb);
   ros::Subscriber depth_sub               = nh.subscribe("/zed/zed_node/depth/depth_registered", 100, depth_callback);

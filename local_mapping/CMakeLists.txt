@@ -10,34 +10,31 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   sensor_msgs
  # darknet_ros_msgs
-  message_generation
-  tf
-  tf2
-  tf2_ros
-  tf2_geometry_msgs
+  #message_generation
+  
   
  )
 
-add_message_files(
-  FILES
-  detected_object_info.msg
-  detected_object.msg
-)
+# add_message_files(
+#   FILES
+#   detected_object_info.msg
+#   detected_object.msg
+# )
 
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-  geometry_msgs
-  sensor_msgs
+# generate_messages(
+#   DEPENDENCIES
+#   std_msgs
+#   geometry_msgs
+#   sensor_msgs
   
-)
+# )
 
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES darknet_ros_msgs
 #  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
-CATKIN_DEPENDS message_runtime
+#CATKIN_DEPENDS message_runtime
 )
 
 

@@ -16,7 +16,7 @@
 #include <sensor_msgs/Imu.h>
 #include <tf/tf.h>
 
-#include <local_mapping/detected_object.h>
+#include <object_localization/detected_object.h>
 #include <srf08_ranging/obstacle_distance.h>
 
 #include <string>

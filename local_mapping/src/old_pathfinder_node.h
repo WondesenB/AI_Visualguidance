@@ -10,7 +10,7 @@
 
 #include <std_msgs/String.h>
 
-#include "local_mapping/detected_object.h"
+#include "object_localization/detected_object.h"
 
 //#include <zed_data_subscribe/detected_object.h>
 

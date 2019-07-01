@@ -9,7 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   sensor_msgs
-
+  object_localization
   
  )
 
@@ -36,7 +36,7 @@ catkin_package(
   std_msgs
   geometry_msgs
   sensor_msgs
-  
+  object_localization
 #  DEPENDS system_lib
 #CATKIN_DEPENDS 
 #CATKIN_DEPENDS message_runtime
@@ -54,3 +54,6 @@ add_executable(${PROJECT_NAME}_node  src/local_mapping_node.cpp)
 add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES})
 
+add_executable(old_pathfinder src/old_pathfinder_node.cpp)
+add_dependencies(old_pathfinder ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(old_pathfinder ${catkin_LIBRARIES})

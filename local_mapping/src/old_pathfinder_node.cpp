@@ -34,7 +34,7 @@ void imu_cb(const sensor_msgs::Imu::ConstPtr& msg)
 }
 
 
-void BoundBox_info_cb(const local_mapping::detected_object::ConstPtr& msg)
+void BoundBox_info_cb(const object_localization::detected_object::ConstPtr& msg)
 {
    
     ob.obj.clear();
@@ -48,7 +48,7 @@ void BoundBox_info_cb(const local_mapping::detected_object::ConstPtr& msg)
     for(int i = 0; i < boxNM; i++)
     {
       //const zed_data_subscribe::detected_object &data = msg->info[i];
-      const local_mapping::detected_object_info &data = msg->info[i];
+      const object_localization::detected_object_info &data = msg->info[i];
       string  obj_type = data.name.c_str();
       float   y_min = data.Y_min;
       float   y_max = 2.0*data.Y - y_min;
@@ -129,7 +129,7 @@ int main( int argc, char** argv ) {
         ("mavros/set_mode");
   
   
-  ros::Subscriber  BoundBox_sub = nh.subscribe<local_mapping::detected_object> 
+  ros::Subscriber  BoundBox_sub = nh.subscribe<object_localization::detected_object> 
         ("/detected_object/info", 1000, &BoundBox_info_cb);
  
   ros::Publisher local_setpos_pub = nh.advertise<geometry_msgs::PoseStamped>

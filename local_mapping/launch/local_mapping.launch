@@ -1,8 +1,9 @@
 <launch>
 
    <!-- zed data subscriber node -->
+
    <node pkg="local_mapping" name="local_mapping_node" type="local_mapping_node" output="screen">
-   
+  
    </node>
 
 </launch>

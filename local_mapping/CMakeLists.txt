@@ -9,28 +9,23 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   sensor_msgs
-  darknet_ros_msgs
-  message_generation
-  tf
-  tf2
-  tf2_ros
-  tf2_geometry_msgs
+
   
  )
 
-add_message_files(
-  FILES
-  detected_object_info.msg
-  detected_object.msg
-)
+# add_message_files(
+#   FILES
+#   detected_object_info.msg
+#   detected_object.msg
+# )
 
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-  geometry_msgs
-  sensor_msgs
+# generate_messages(
+#   DEPENDENCIES
+#   std_msgs
+#   geometry_msgs
+#   sensor_msgs
   
-)
+# )
 
 catkin_package(
   INCLUDE_DIRS include
@@ -41,14 +36,11 @@ catkin_package(
   std_msgs
   geometry_msgs
   sensor_msgs
-  darknet_ros_msgs
-  message_runtime
-  tf
-  tf2
-  tf2_ros
-  tf2_geometry_msgs
+  
 #  DEPENDS system_lib
 #CATKIN_DEPENDS 
+#CATKIN_DEPENDS message_runtime
+
 )
 
 
@@ -57,8 +49,8 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(local_mapping_node  src/local_mapping_node.cpp)
-target_link_libraries(local_mapping_node  ${catkin_LIBRARIES})
 
-add_executable(old_pathfinder src/old_pathfinder_node.cpp)
-target_link_libraries(old_pathfinder ${catkin_LIBRARIES})
+add_executable(${PROJECT_NAME}_node  src/local_mapping_node.cpp)
+add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES})
+

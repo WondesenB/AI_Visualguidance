@@ -2,16 +2,49 @@
 
 int search_pos= 0;
 int search_dir = 1;
+float p1  = 0.5f;
+float p_1 = -0.5f;
+float p2  = 1.0f;
+float p_2 = -1.0f;
 // subscriber callback function
-void detected_object_cb(const local_mapping::detected_object::ConstPtr&  msg)
+void depth_callback(const sensor_msgs::Image::ConstPtr& msg)
+{
+    // Get a pointer to the depth values casting the data
+    // pointer to floating point
+    float* depths = (float*)(&msg->data[0]);
+
+    // Image coordinates of the center pixel
+     u = msg->width / 2;
+     v = msg->height / 2;
+
+    // Linear index of the center pixel
+    int centerIdx = u + msg->width * v;
+
+    // Output the measure
+    if(std::isfinite(depths[centerIdx]))
+    {
+
+    obstacle_front = 100.0*depths[centerIdx];
+    //ROS_INFO("Front obstacle distance : %g m", depths[centerIdx]);
+    }
+}
+void obstacle_dis_cb(const srf08_ranging::obstacle_distance::ConstPtr& msg)
+{
+   obstacle_up = msg->up;
+   obstacle_right = msg->right;
+   obstacle_left = msg->left;
+  // ROS_INFO("Obstacle info, up: %d cm, right: %d cm, left: %d cm ",obstacle_up,obstacle_right,obstacle_left);
+
+}
+
+void detected_object_cb(const object_localization::detected_object::ConstPtr&  msg)
 {
    
  
   dobj.object.clear();
   for (int i =0; i<msg->info.size();++i)
    {
-
-      const local_mapping::detected_object_info &data = msg->info[i];
+      const object_localization::detected_object_info &data = msg->info[i];
       std::string name_ = data.name;
       float  Ym         = data.Y_min;
       float  Zm         = data.Z_min;
@@ -72,20 +105,24 @@ int main(int argc, char ** argv)
   ros::init(argc, argv, "mission_node");
   ros::NodeHandle nh;
   // subscriber
-  ros::Subscriber state_sub      = nh.subscribe < mavros_msgs::State >("mavros/state", 100, state_cb);
-  ros::Subscriber local_pos_sub  = nh.subscribe < geometry_msgs::PoseStamped >("mavros/local_position/pose", 100, local_position_cb);
-  ros::Subscriber inertial_sub   = nh.subscribe<sensor_msgs::Imu>("mavros/imu/data",100,inertial_cb);
-  ros::Subscriber subobj         = nh.subscribe<local_mapping::detected_object>("/detected_object/info", 10, detected_object_cb);
-  ros::Subscriber local_vispos_sub = nh.subscribe<geometry_msgs::PoseStamped>("/mavros/vision_pose/pose", 10,camera_pos_cb); //mocap vision_pose /mavros/vision_pose/pose
+
+  ros::Subscriber state_sub = nh.subscribe < mavros_msgs::State >("mavros/state", 1000, state_cb);
+  ros::Subscriber local_pos_sub = nh.subscribe < geometry_msgs::PoseStamped >("mavros/local_position/pose", 1000, local_position_cb);
+  ros::Subscriber inertial_sub = nh.subscribe<sensor_msgs::Imu>("mavros/imu/data",1000,inertial_cb);
+  ros::Subscriber subobj         = nh.subscribe<object_localization::detected_object>("/detected_object/info", 100, detected_object_cb);
+  ros::Subscriber local_vispos_sub = nh.subscribe<geometry_msgs::PoseStamped>("/mavros/vision_pose/pose", 100,camera_pos_cb); //mocap vision_pose /mavros/vision_pose/pose
+  ros::Subscriber obstacle_distance_sub = nh.subscribe<srf08_ranging::obstacle_distance>("/obstacle_distance/info", 100,obstacle_dis_cb);
+  ros::Subscriber depth_sub               = nh.subscribe("/zed/zed_node/depth/depth_registered", 100, depth_callback);
   //publisher
-   pose_sp_pub = nh.advertise < geometry_msgs::PoseStamped >("mavros/setpoint_position/local", 100);
+  pose_sp_pub = nh.advertise < geometry_msgs::PoseStamped >("mavros/setpoint_position/local", 1000);
+
   //service
   ros::ServiceClient arming_client = nh.serviceClient < mavros_msgs::CommandBool >("mavros/cmd/arming");
   ros::ServiceClient land_client = nh.serviceClient < mavros_msgs::CommandTOL >("mavros/cmd/land");
   ros::ServiceClient set_mode_client = nh.serviceClient < mavros_msgs::SetMode >("mavros/set_mode");
 
   //the setpoint publishing rate MUST be faster than 2Hz
-  ros::Rate rate(50.0);
+  ros::Rate rate(100.0);
 
   // wait for FCU connection
   while (ros::ok() && !current_state.connected) 
@@ -158,9 +195,9 @@ int main(int argc, char ** argv)
   }
 
   ros::Time begin = ros::Time::now();
-  ROS_INFO("time duration in secs = %f", (ros::Time::now()- begin)*1e-9);
 
-  mission_type        mission  = mission_takeoff;
+
+  mission_type mission = mission_takeoff;
   track_window_cmd     win_tracking_cmd = search;
   window_tracking_state    win_tracking_state  =  searching;
   
@@ -171,23 +208,82 @@ int main(int argc, char ** argv)
     {
     case mission_takeoff:
           landing = 0;
+          Nwpx = 0.0;
+          Nwpy = 0.0;
+          Nwpz = takeoff_alt;
+          //find_nextsafe_wp(Nwpx,Nwpy, Nwpz,mission,win_tracking_cmd,search_dir);
           pose_sp.header.stamp = ros::Time::now();
           pose_sp.header.frame_id = "map";
-          pose_sp.pose.position.x = 0;
-          pose_sp.pose.position.y = 0;
-          pose_sp.pose.position.z = takeoff_alt+0.3 ;
+          pose_sp.pose.position.x = Nwpx;
+          pose_sp.pose.position.y = Nwpy;
+          pose_sp.pose.position.z = Nwpz+0.3 ;
           pose_sp.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yawt);
           ROS_INFO("takeoff to altitude: %f ", takeoff_alt);
         if (local_z >= takeoff_alt)
         {
           ROS_INFO("Hovering ");
-          wait_cycle(300,rate);
-          mission = mission_window;
+          wait_time(10,rate);
+          mission = mission_wall;
+          //mission = mission_window;
         }
 
         publish_pos_sp(rate); 
         count = 1;
         break;
+    case mission_wall:
+          landing = 0;
+          Nwpx = 0.0;
+          Nwpy = -1.0;
+          Nwpz = takeoff_alt;    
+          while(abs(local_y-Nwpy)>0.3)
+          {
+            find_nextsafe_wp(Nwpx,Nwpy, Nwpz,mission,win_tracking_cmd,search_dir);
+            pose_sp.header.stamp = ros::Time::now();
+            pose_sp.header.frame_id = "map";
+            pose_sp.pose.position.x = Nwpx;
+            pose_sp.pose.position.y = Nwpy;
+            pose_sp.pose.position.z = Nwpz;
+            pose_sp.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yawt);
+            publish_pos_sp(rate);
+            ROS_INFO("looking for wall passing  path");
+          } 
+          Nwpx = 2.0;
+          while(abs(local_x-Nwpx)>0.3)
+          {
+          
+            find_nextsafe_wp(Nwpx,Nwpy, Nwpz,mission,win_tracking_cmd,search_dir);
+            pose_sp.header.stamp = ros::Time::now();
+            pose_sp.header.frame_id = "map";
+            pose_sp.pose.position.x = Nwpx;
+            pose_sp.pose.position.y = Nwpy;
+            pose_sp.pose.position.z = Nwpz;
+            pose_sp.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yawt);
+            publish_pos_sp(rate);
+            ROS_INFO("passing wall");
+          }
+          Nwpy = 0.0;
+          while(abs(local_y-Nwpy)>0.3)
+          {
+            
+            find_nextsafe_wp(Nwpx,Nwpy, Nwpz,mission,win_tracking_cmd,search_dir);
+            pose_sp.header.stamp = ros::Time::now();
+            pose_sp.header.frame_id = "map";
+            pose_sp.pose.position.x = Nwpx;
+            pose_sp.pose.position.y = Nwpy;
+            pose_sp.pose.position.z = Nwpz;
+            pose_sp.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yawt);
+            publish_pos_sp(rate);
+            ROS_INFO("searching for window");
+            if (abs(local_y-Nwpy)<0.4)
+            {
+             mission = mission_window; 
+            }
+          }
+          if (abs(local_y-Nwpy)<0.3)
+          {
+           mission = mission_window; 
+          }                                        
+         break; 
     case mission_window:
           // pass through window
           landing = 0;
@@ -198,6 +294,7 @@ int main(int argc, char ** argv)
                  ROS_INFO("searching");
                  while (win_tracking_cmd == search)
                  {
+
                    for (int j =0; j< dobj.object.size(); ++j)
                    {
                       std::string s = dobj.object[j].obj_name.c_str();
@@ -211,8 +308,18 @@ int main(int argc, char ** argv)
 
                      }
                      publish_pos_sp(rate);
-                   } 
-                   publish_pos_sp(rate);                
+
+                   }
+                   window_scan (search_pos,search_dir,yawt,rate); 
+                   publish_pos_sp(rate);  
+                   if ((ros::Time::now()- begin)>ros::Duration(90.0))
+                    {   
+                       ROS_INFO("Time is over, changing to auto landing mode ");
+                       mission = mission_landing;
+                       break;
+                    }
+                        
+
                  }
 
                   publish_pos_sp(rate);
@@ -245,6 +352,8 @@ int main(int argc, char ** argv)
                     pose_sp.pose.position.x = WXm;
                     pose_sp.pose.position.y = 0.0;
                     pose_sp.pose.position.z = WZm;
+
+                    pose_sp.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yawt);
                     publish_pos_sp(rate);
                     ROS_INFO("Aligning vertically @ %f",WZm);
                   }
@@ -270,11 +379,6 @@ int main(int argc, char ** argv)
                   publish_pos_sp(rate);
                   win_tracking_cmd = approach; //search
                  }
-            			/*if ((ros::Time::now()- begin)>ros::Duration(20.0))
-            			  {
-            			   mission = mission_landing;
-            			  }
-            			 */
 
                 break;
 
@@ -304,7 +408,8 @@ int main(int argc, char ** argv)
                     ROS_INFO("approaching window @ %f",WXm);
                     if(abs(local_x - WXm) < 0.3)
                       {
-                       wait_cycle(300, rate);
+
+                       wait_time(10, rate);
                        mission = mission_landing;
                        break;
                       }
@@ -312,7 +417,8 @@ int main(int argc, char ** argv)
 
                  if(abs(local_x - WXm) < 0.3)
                   {
-                   wait_cycle(300, rate);
+
+                   wait_time(10, rate);
                    mission = mission_landing;
                    publish_pos_sp(rate);                   
                    break;
@@ -323,7 +429,6 @@ int main(int argc, char ** argv)
 
          break;
     case mission_landing:
-                  
           ROS_INFO("LANDING");
           while (!(land_client.call(land_cmd) && land_cmd.response.success)) 
           {
@@ -341,6 +446,9 @@ int main(int argc, char ** argv)
 }
 
 
+
+//--------- subroutines ----------
+
 void wait_cycle(int cycle, ros::Rate r )
 {
  for (int i=0; i<cycle; ++i)
@@ -349,6 +457,17 @@ void wait_cycle(int cycle, ros::Rate r )
    ros::spinOnce();
    r.sleep(); 
   } 
+}
+
+void wait_time(float time, ros::Rate r )
+{
+ ros::Time start = ros::Time::now();
+  while((ros::Time::now()- start)<ros::Duration(time))
+  {
+   pose_sp_pub.publish(pose_sp);
+   ros::spinOnce();
+   r.sleep();  
+  }
 }
 
 void limitWin_location(float& x, float& y, float& z)
@@ -400,13 +519,179 @@ void limitWin_location(float& x, float& y, float& z)
   }
 }
 
-void winlocation_stat(windows wds, float& Wxm, float& Wym, float& Wzm, float& Xt,float& Yt, float& Zt, float& Xvar, float& Yvar,float& Zvar )
-{
 
-}
 void publish_pos_sp(ros::Rate r)
 {
   pose_sp_pub.publish(pose_sp);
   ros::spinOnce();
   r.sleep(); 
+}
+
+
+void find_nextsafe_wp (float& wpx, float& wpy, float& wpz, mission_type mission, track_window_cmd& win_cmd ,int& d)
+{
+ 
+ switch(mission)
+ {
+  case mission_takeoff: 
+       if (obstacle_up <= 100)
+       {
+        wpx = local_x;
+        wpy = 0.0;
+        wpz = local_z-0.3;
+       }
+       else
+       {
+        wpx = local_x;
+        wpy = wpy;
+        wpz = wpz;
+       }
+       break;
+  case mission_window: 
+       if((win_cmd == search && d ==1 ) && obstacle_left <=100) 
+       {
+        d = -1;
+       }
+       if((win_cmd == search && d == -1 ) && obstacle_right <=100) 
+       {
+        d = 1;
+       } 
+      if((win_cmd == search ) && obstacle_front <=100) 
+       {
+        wpx = local_x-0.3;
+       }
+      if((win_cmd == search ) && obstacle_down <=100) 
+       {
+        wpz = local_z + 0.5;
+       } 
+      if((win_cmd == search ) && obstacle_up <=100) 
+       {
+        wpz = local_z - 0.5;
+       } 
+       if((win_cmd == align) && (obstacle_up <=100 || obstacle_right <=100  || obstacle_left <=100))  
+       {
+        wpx = local_x;
+        wpy = local_y;
+        wpz = local_z;  
+       }
+      if((win_cmd == approach) && (obstacle_front <=100 ))  
+       {
+        wpx = local_x;
+        wpy = local_y;
+        wpz = local_z;  
+       }                           
+       break;
+  case mission_pole:     
+       break; 
+  case mission_pipe:     
+       break;             
+ }
+
+
+}
+
+
+void window_scan ( int& p, int& d ,float yaw,ros::Rate r )
+{ 
+  float x =local_x;
+  float y = 0;
+  float z = 1.3;
+  if (p == 0 && d== 1)
+  {
+    y = p1;
+  }
+  else if (p == 0 && d== -1)
+  {
+    y = p_1;
+  }
+ else if (p == 1 && d== 1)
+  {
+    y = p2;
+  }    
+ else if (p == 1 && d== -1)
+  {
+    y = 0.0f;
+  }
+ else if (p == -1 && d== 1)
+  {
+    y = 0.0f;
+  }
+ else if (p == -1 && d== -1)
+  {
+   y = p_2;
+  } 
+ else if (p == 2 && d== 1)
+  {
+    y = p2;
+  }
+ else if (p == 2 && d== -1)
+  {
+    y = p1;
+  }
+ else if (p == -2 && d== -1)
+  {
+   y = p_2;
+  } 
+  else if (p == -2 && d== 1)
+  {
+   y = p_1;
+  } 
+  else
+  {
+    y = 0.0f;
+  }   
+  pose_sp.header.stamp = ros::Time::now();
+  pose_sp.header.frame_id = "map";
+  pose_sp.pose.position.x = x;
+  pose_sp.pose.position.y = y;
+  pose_sp.pose.position.z = z ;
+  pose_sp.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yaw); 
+  publish_pos_sp(r); 
+  
+  if (p == 0 && d == 1 && (abs(local_y-p1)<0.3))
+  {
+    p = 1;
+    d = 1;
+  }
+  else if (p == 0 && d == -1 && (abs(local_y-p_1)<0.3))
+  {
+    p = -1;
+    d = -1;
+  } 
+  else if (p == 1 && d == 1 && (abs(local_y-p2)<0.3))
+  {
+    p = 2;
+    d = -1;
+  }
+ else if (p == 1 && d == -1 && (abs(local_y)<0.3))
+  {
+    p = 0;
+    d = -1;
+  } 
+ else if (p == -1 && d == 1 && (abs(local_y)<0.3))
+  {
+    p = 0;
+    d = 1;
+  } 
+  else if (p == -1 && d == -1 && (abs(local_y-p_2)<0.3))
+  {
+    p = -2;
+    d = 1;
+  } 
+  else if (p == 2 && d == -1 && (abs(local_y-p1)<0.3))
+  {
+    p = 1;
+    d = -1;
+  } 
+  else if (p == -2 && d == 1 && (abs(local_y-p_1)<0.3))
+  {
+    p = -1;
+    d = 1;
+  } 
+  else
+  {
+    p = p;
+    d = d;
+  }
+  publish_pos_sp(r);        
 }

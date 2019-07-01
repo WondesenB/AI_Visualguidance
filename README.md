@@ -28,9 +28,13 @@
 	Then modify 
 	/AI_Visualguidance/darknet_ros/darknet_ros/config/yolov3_custom.yaml 
 
-## launch zed_data_subscribe node
+## launch local_mapping node
 
- 	roslaunch zed_data_subscribe zed_data.launch
+ 	roslaunch local_mapping local_mapping.launch
+
+## launch mission node
+
+ 	rosrun mission mission_node	
 
 ## All node launch
 

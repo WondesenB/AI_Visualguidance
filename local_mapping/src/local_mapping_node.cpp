@@ -54,7 +54,7 @@ void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
     // Roll Pitch and Yaw from rotation matrix
     
     m.getRPY(roll, pitch, yaw);
-
+    ROS_INFO("subscribing pose now ... ");
    // Output the measure
     // ROS_INFO("Received pose in '%s' frame : X: %.2f Y: %.2f Z: %.2f - R: %.2f P: %.2f Y: %.2f",
     //          msg->header.frame_id.c_str(),

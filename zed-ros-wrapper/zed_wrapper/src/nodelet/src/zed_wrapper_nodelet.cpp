@@ -1283,6 +1283,7 @@ namespace zed_wrapper {
 
             // Publish pose stamped message
             mPubPose.publish(poseNoCov);
+            ROS_INFO("publishing pose now ...");
         }
 
         if (mPublishPoseCovariance) {

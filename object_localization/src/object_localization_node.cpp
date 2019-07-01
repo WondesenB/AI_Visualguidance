@@ -169,7 +169,7 @@ int main(int argc, char **argv)
  // tf::TransformBroadcaster zedbroadcaster;
   zed2dronebase_transform ();
 
- ros::Rate rate(70.0); 
+ ros::Rate rate(30.0); 
 
  
  ros::Time last_request = ros::Time::now();

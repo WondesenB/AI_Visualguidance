@@ -84,7 +84,17 @@ void pixelTo3DXYZ_callback(const sensor_msgs::PointCloud2 pointCL)
      int arrayPosXZmin  ; // X has an offset of 0
      int arrayPosYZmin  ; // Y has an offset of 4
      int arrayPosZZmin  ; // Z has an offset of 8
+    // X
+     int arrayPosition3;
+     int arrayPosX_o  ; // X has an offset of 0
+     int arrayPosY_o  ; // Y has an offset of 4
+     int arrayPosZ_o  ; // Z has an offset of 8
+
      float Xzmin,Yzmin, Zzmin, area;
+     // fake
+     float y_o =0.0;
+     float z_o = 0.0;
+
      ob.object.clear();
 
      for (int i =0; i<obb->obj.size();++i)
@@ -120,6 +130,17 @@ void pixelTo3DXYZ_callback(const sensor_msgs::PointCloud2 pointCL)
       memcpy(&Xzmin, &pointCL.data[arrayPosXZmin], sizeof(float));
       memcpy(&Yzmin, &pointCL.data[arrayPosYZmin], sizeof(float));
       memcpy(&Zzmin, &pointCL.data[arrayPosZZmin], sizeof(float));
+
+      //X
+      arrayPosition3 = (obb->obj[i].v_c)*pointCL.row_step + (obb->obj[i].u_max + 100)*pointCL.point_step;
+      arrayPosX_o     = arrayPosition3 + pointCL.fields[0].offset; // X has an offset of 0
+      arrayPosY_o     = arrayPosition3 + pointCL.fields[1].offset; // Y has an offset of 4
+      arrayPosZ_o     = arrayPosition3 + pointCL.fields[2].offset; // Z has an offset of 8
+      
+      memcpy(&X, &pointCL.data[arrayPosX_o], sizeof(float));
+      memcpy(&y_o, &pointCL.data[arrayPosY_o], sizeof(float));
+      memcpy(&z_o, &pointCL.data[arrayPosZ_o], sizeof(float));
+
       area = (2.0f*abs(Y-Yymin))*(2.0f*abs(Z-Zzmin));
 
      if (std::isfinite(X) && std::isfinite(Y) && std::isfinite(Z) )

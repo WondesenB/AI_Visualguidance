@@ -1,2 +1,6 @@
 *.weights
+*.slo
+*.lo
+*.o
+*.obj
 detected_obj_pub_node.py

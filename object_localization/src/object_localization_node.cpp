@@ -1,7 +1,8 @@
 // zed stereo camera subscription code here
 
 #include "object_localization_node.h"
-
+float img_h =0;
+float img_w =0;
 void boundingbox_callback(const darknet_ros_msgs::BoundingBoxes::ConstPtr&  msg)
 {
    
@@ -56,11 +57,14 @@ void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
 void imageRightRectifiedCallback(const sensor_msgs::Image::ConstPtr& msg) {
     // ROS_INFO("Right Rectified image received from ZED - Size: %dx%d", msg->width, msg->height);
 }
-
-void imageLeftRectifiedCallback(const sensor_msgs::Image::ConstPtr& msg) {
-    // ROS_INFO("Left Rectified image received from ZED - Size: %dx%d", msg->width, msg->height);
+/*
+void imageLeftRectifiedCallback(const sensor_msgs::Image::ConstPtr& msg) 
+{
+     img_w =msg->width;
+     img_h = msg->height;
+     ROS_INFO("Left Rectified image received from ZED - Size: %dx%d", img_w, img_h);
 }
-
+*/
 void pixelTo3DXYZ_callback(const sensor_msgs::PointCloud2 pointCL)
 {
 
@@ -132,7 +136,7 @@ void pixelTo3DXYZ_callback(const sensor_msgs::PointCloud2 pointCL)
       memcpy(&Zzmin, &pointCL.data[arrayPosZZmin], sizeof(float));
 
       //X
-      arrayPosition3 = (obb->obj[i].v_c)*pointCL.row_step + (obb->obj[i].u_max + 100)*pointCL.point_step;
+      arrayPosition3 = (obb->obj[i].v_c)*pointCL.row_step + (obb->obj[i].u_max + 15)*pointCL.point_step;
       arrayPosX_o     = arrayPosition3 + pointCL.fields[0].offset; // X has an offset of 0
       arrayPosY_o     = arrayPosition3 + pointCL.fields[1].offset; // Y has an offset of 4
       arrayPosZ_o     = arrayPosition3 + pointCL.fields[2].offset; // Z has an offset of 8
@@ -256,7 +260,7 @@ while(ros::ok() )
       tf2::doTransform(Ymin_in, Ymin_out, transformStamped);
       tf2::doTransform(Zmin_in, Zmin_out, transformStamped);
 
-      ROS_INFO("XYZ wrt camera = (%f, %f, %f), XYZ wrt map = (%f, %f, %f)" ,XYZ_in.point.x,XYZ_in.point.y,XYZ_in.point.y,XYZ_out.point.x, XYZ_out.point.y,XYZ_out.point.z );
+      ROS_INFO("XYZ wrt camera = (%f, %f, %f), XYZ wrt map = (%f, %f, %f)" ,XYZ_in.point.x,XYZ_in.point.y,XYZ_in.point.z,XYZ_out.point.x, XYZ_out.point.y,XYZ_out.point.z );
 
       } 
   catch (tf2::TransformException &ex) 

@@ -130,10 +130,10 @@ int main( int argc, char** argv ) {
   
   
   ros::Subscriber  BoundBox_sub = nh.subscribe<object_localization::detected_object> 
-        ("/detected_object/info", 1000, &BoundBox_info_cb);
+        ("/detected_object/info", 100, &BoundBox_info_cb);
  
   ros::Publisher local_setpos_pub = nh.advertise<geometry_msgs::PoseStamped>
-        ("/mavros/setpoint_position/local", 1000); 
+        ("/mavros/setpoint_position/local", 100); 
 
 
         PathFinder old_pathfinder_node;
@@ -1070,7 +1070,9 @@ while(ros::ok() && offb_set_mode.request.custom_mode == "OFFBOARD" )
         while(!obj_detected && rot_l <= ROT_MAX){ 
             rot_l = count*PI/360.0;             
             pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0,0,yawt);
-            
+            pose.pose.position.x = 0.0;
+  	    pose.pose.position.y = 0.0;
+  	    pose.pose.position.z = 0.5*ALT_LIMIT + MARGIN;
             local_setpos_pub.publish(pose);
             
             ROS_INFO("Yaw left by angle:%f, count:%i",rot_l, count);
@@ -1094,7 +1096,9 @@ while(ros::ok() && offb_set_mode.request.custom_mode == "OFFBOARD" )
             pose.header.stamp = ros::Time::now();                
             pose.header.frame_id = "map";
             pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0,0,yawt);
-            
+            pose.pose.position.x = 0.0;
+  	    pose.pose.position.y = 0.0;
+  	    pose.pose.position.z = 0.5*ALT_LIMIT + MARGIN;
             local_setpos_pub.publish(pose);             
             ROS_INFO("Yaw right by angle:%f, count:%i",rot_r, count);
 

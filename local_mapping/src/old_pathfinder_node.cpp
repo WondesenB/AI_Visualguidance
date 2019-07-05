@@ -332,8 +332,17 @@ while(ros::ok() && offb_set_mode.request.custom_mode == "OFFBOARD" )
     }else if(obj_detected && boxID->obj[0].obj_type == window)
     {        
         ROS_INFO_ONCE("MISSION SEGMENT :%s ",boxID->obj[0].obj_type.c_str());  
-
-        float target_x = boxID->obj[0].x_cnt + OBJ_CLR;
+	
+	if (boxID->obj[0].x_cnt <= 3.5 &&  boxID->obj[0].x_cnt >= 2.70)
+          {
+          target_x = boxID->obj[0].x_cnt + OBJ_CLR;
+          }
+         else
+          {
+          target_x = 3.5 + OBJ_CLR;          
+          }         
+	
+        
         increm = 1;     //intervals to check/recheck target center
         count = 0;
         while(ros::ok() && local_x < target_x && count <= 1)            
@@ -355,8 +364,7 @@ while(ros::ok() && offb_set_mode.request.custom_mode == "OFFBOARD" )
           {
           target_z = local_z;
           obj_detected = false;
-          }
-         
+          }         
          
               while((abs(target_y - local_y) > TOLRNCE ||
                     abs(target_z - local_z) > TOLRNCE) && obj_detected)

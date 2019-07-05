@@ -350,6 +350,7 @@ while(ros::ok() && offb_set_mode.request.custom_mode == "OFFBOARD" )
           if (boxID->obj[0].y_cnt <= 1.5 &&  boxID->obj[0].y_cnt >= -1.5)
           {
           target_y = boxID->obj[0].y_cnt;
+         
           }
          else
           {
@@ -359,6 +360,7 @@ while(ros::ok() && offb_set_mode.request.custom_mode == "OFFBOARD" )
           if (boxID->obj[0].z_cnt <= 2 &&  boxID->obj[0].z_cnt >= 0.7)
           {
           target_z = boxID->obj[0].z_cnt;
+          
           }
          else
           {
@@ -411,36 +413,24 @@ while(ros::ok() && offb_set_mode.request.custom_mode == "OFFBOARD" )
                 count++;
                //land at current location
                //# AUTO-LANDING
-               if(obj_detected)
-             {
-               ROS_INFO("LANDING...");
-              while (!(land_client.call(land_cmd) && land_cmd.response.success)) {                    
-                  pose.header.stamp = ros::Time::now();                  
-                  pose.header.frame_id = "map";
-                  local_setpos_pub.publish(pose);
-                  ros::spinOnce();
-                  rate.sleep();
-              }
+
+         if(obj_detected && count >1) 
+	 {
+              ROS_INFO("LANDING...");
+              while (!(land_client.call(land_cmd) && land_cmd.response.success)) 
+		{                    
+		  pose.header.stamp = ros::Time::now();                  
+		  pose.header.frame_id = "map";
+		  local_setpos_pub.publish(pose);
+		  ros::spinOnce();
+		  rate.sleep();
+		}
               
-              }
-              /*
-              //# SETPOINT LANDING
-              float land_z = -0.5;
-               while(local_z >= land_z){
-                 pose.header.stamp = ros::Time::now();                          
-                 pose.header.frame_id = "map";
-                 pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0,0,yawt);
-                 pose.pose.position.x = pose.pose.position.x;               
-                 pose.pose.position.y = pose.pose.position.y;
-                 pose.pose.position.z = land_z;                       
-                 local_setpos_pub.publish(pose);
-                 ros::spinOnce();
-                 rate.sleep();               
-               } 
-             */
+         }   
             
         }
 
+              	
         //old_pathfinder_node.object_list.erase(old_pathfinder_node.object_list.begin()); 
         //old_pathfinder_node.object_list.resize(old_pathfinder_node.object_list.size() - 1);
         //obj_detected = false;          

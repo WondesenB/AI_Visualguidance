@@ -1,2 +1,9 @@
 *.weights
+*.slo
+*.lo
+*.o
+*.obj
+*.avi
+*.a
+*.so
 detected_obj_pub_node.py

@@ -1,0 +1,6 @@
+classes= 1
+train  = /home/nvidia/Desktop/darknet_custom/data/train.txt
+valid  = /home/nvidia/Desktop/darknet_custom/data/test.txt
+names = /home/nvidia/Desktop/darknet_custom/data/obj.names
+backup = backup/
+

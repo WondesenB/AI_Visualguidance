@@ -38,26 +38,31 @@
 
 using namespace std;
 
-namespace zed_wrapper {
+namespace zed_wrapper 
+{
 
-#ifndef DEG2RAD
-#define DEG2RAD 0.017453293
-#define RAD2DEG 57.295777937
-#endif
+    #ifndef DEG2RAD
+    #define DEG2RAD 0.017453293
+    #define RAD2DEG 57.295777937
+    #endif
 
     ZEDWrapperNodelet::ZEDWrapperNodelet() : Nodelet() {}
 
-    ZEDWrapperNodelet::~ZEDWrapperNodelet() {
-        if (mDevicePollThread.joinable()) {
+    ZEDWrapperNodelet::~ZEDWrapperNodelet() 
+    {
+        if (mDevicePollThread.joinable()) 
+        {
             mDevicePollThread.join();
         }
 
-        if (mPcThread.joinable()) {
+        if (mPcThread.joinable()) 
+        {
             mPcThread.join();
         }
     }
 
-    void ZEDWrapperNodelet::onInit() {
+    void ZEDWrapperNodelet::onInit() 
+    {
 
 
         // Node handlers
@@ -67,14 +72,14 @@ namespace zed_wrapper {
         mStopNode = false;
         mPcDataReady = false;
 
-#ifndef NDEBUG
+        #ifndef NDEBUG
 
-        if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME,
-                                           ros::console::levels::Debug)) {
-            ros::console::notifyLoggerLevelsChanged();
-        }
+                if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME,ros::console::levels::Debug)) 
+                {
+                    ros::console::notifyLoggerLevelsChanged();
+                }
 
-#endif
+        #endif
         std::string ver = sl_tools::getSDKVersion(mVerMajor, mVerMinor, mVerSubMinor);
         NODELET_INFO_STREAM("SDK version : " << ver);
 
@@ -98,10 +103,13 @@ namespace zed_wrapper {
         // Set the depth topic names
         string depth_topic = mDepthTopicRoot;
 
-        if (mOpenniDepthMode) {
+        if (mOpenniDepthMode) 
+        {
             NODELET_INFO_STREAM("Openni depth mode activated");
             depth_topic += "/depth_raw_registered";
-        } else {
+        } 
+        else 
+        {
             depth_topic += "/depth_registered";
         }
 
@@ -134,41 +142,55 @@ namespace zed_wrapper {
         mTfListener.reset(new tf2_ros::TransformListener(*mTfBuffer));
 
         // Try to initialize the ZED
-        if (!mSvoFilepath.empty() || !mRemoteStreamAddr.empty()) {
+        if (!mSvoFilepath.empty() || !mRemoteStreamAddr.empty()) 
+        {
 
-            if (!mSvoFilepath.empty()) {
+            if (!mSvoFilepath.empty()) 
+            {
                 mZedParams.svo_input_filename = mSvoFilepath.c_str();
                 mZedParams.svo_real_time_mode = false;
-            } else  if (!mRemoteStreamAddr.empty()) {
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
-                std::vector<std::string> configStream = sl_tools::split_string(mRemoteStreamAddr, ':');
-                sl::String ip = sl::String(configStream.at(0).c_str());
+            } 
+            else  if (!mRemoteStreamAddr.empty()) 
+            {
+                #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
+                                std::vector<std::string> configStream = sl_tools::split_string(mRemoteStreamAddr, ':');
+                                sl::String ip = sl::String(configStream.at(0).c_str());
 
-                if (configStream.size() == 2) {
-                    mZedParams.input.setFromStream(ip, atoi(configStream.at(1).c_str()));
-                } else {
-                    mZedParams.input.setFromStream(ip);
-                }
+                                if (configStream.size() == 2) 
+                                {
+                                    mZedParams.input.setFromStream(ip, atoi(configStream.at(1).c_str()));
+                                } 
+                                else 
+                                {
+                                    mZedParams.input.setFromStream(ip);
+                                }
 
-#else
-                ROS_ERROR_STREAM("Acquiring a remote stream requires the ZED SDK v2.8 or newer");
-                return;
-#endif
+                #else
+                                ROS_ERROR_STREAM("Acquiring a remote stream requires the ZED SDK v2.8 or newer");
+                                return;
+                #endif
             }
 
             mSvoMode = true;
-        } else {
+        }
+        else 
+        {
             mZedParams.camera_fps = mCamFrameRate;
             mZedParams.camera_resolution = static_cast<sl::RESOLUTION>(mCamResol);
 
-            if (mZedSerialNumber == 0) {
+            if (mZedSerialNumber == 0) 
+            {
                 mZedParams.camera_linux_id = mZedId;
-            } else {
+            } 
+            else 
+            {
                 bool waiting_for_camera = true;
 
-                while (waiting_for_camera) {
+                while (waiting_for_camera) 
+                {
                     // Ctrl+C check
-                    if (!mNhNs.ok()) {
+                    if (!mNhNs.ok()) 
+                    {
                         mStopNode = true; // Stops other threads
 
                         std::lock_guard<std::mutex> lock(mCloseZedMutex);
@@ -182,12 +204,15 @@ namespace zed_wrapper {
                     sl::DeviceProperties prop = sl_tools::getZEDFromSN(mZedSerialNumber);
 
                     if (prop.id < -1 ||
-                        prop.camera_state == sl::CAMERA_STATE::CAMERA_STATE_NOT_AVAILABLE) {
+                        prop.camera_state == sl::CAMERA_STATE::CAMERA_STATE_NOT_AVAILABLE) 
+                    {
                         std::string msg = "ZED SN" + to_string(mZedSerialNumber) +
                                           " not detected ! Please connect this ZED";
                         NODELET_INFO_STREAM(msg.c_str());
                         std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-                    } else {
+                    } 
+                    else 
+                    {
                         waiting_for_camera = false;
                         mZedParams.camera_linux_id = prop.id;
                     }
@@ -195,43 +220,43 @@ namespace zed_wrapper {
             }
         }
 
-#if (ZED_SDK_MAJOR_VERSION<2)
-        NODELET_WARN_STREAM("Please consider to upgrade to latest SDK version to "
-                            "get better performances");
+        #if (ZED_SDK_MAJOR_VERSION<2)
+                NODELET_WARN_STREAM("Please consider to upgrade to latest SDK version to "
+                                    "get better performances");
 
-        mZedParams.coordinate_system = sl::COORDINATE_SYSTEM_IMAGE;
+                mZedParams.coordinate_system = sl::COORDINATE_SYSTEM_IMAGE;
 
-        NODELET_INFO_STREAM(" * Camera coordinate system\t-> COORDINATE_SYSTEM_IMAGE");
-        mIdxX = 2;
-        mIdxY = 0;
-        mIdxZ = 1;
-        mSignX = 1;
-        mSignY = -1;
-        mSignZ = -1;
-#elif (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION<5)
-        NODELET_WARN_STREAM("Please consider to upgrade to latest SDK version to "
-                            "get latest features");
+                NODELET_INFO_STREAM(" * Camera coordinate system\t-> COORDINATE_SYSTEM_IMAGE");
+                mIdxX = 2;
+                mIdxY = 0;
+                mIdxZ = 1;
+                mSignX = 1;
+                mSignY = -1;
+                mSignZ = -1;
+        #elif (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION<5)
+                NODELET_WARN_STREAM("Please consider to upgrade to latest SDK version to "
+                                    "get latest features");
 
-        mZedParams.coordinate_system = sl::COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP;
+                mZedParams.coordinate_system = sl::COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP;
 
-        NODELET_INFO_STREAM(" * Camera coordinate system\t-> COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP");
-        mIdxX = 1;
-        mIdxY = 0;
-        mIdxZ = 2;
-        mSignX = 1;
-        mSignY = -1;
-        mSignZ = 1;
-#else
-        mZedParams.coordinate_system = sl::COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD;
+                NODELET_INFO_STREAM(" * Camera coordinate system\t-> COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP");
+                mIdxX = 1;
+                mIdxY = 0;
+                mIdxZ = 2;
+                mSignX = 1;
+                mSignY = -1;
+                mSignZ = 1;
+        #else
+                mZedParams.coordinate_system = sl::COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD;
 
-        NODELET_INFO_STREAM(" * Camera coordinate system\t-> COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD");
-        mIdxX = 0;
-        mIdxY = 1;
-        mIdxZ = 2;
-        mSignX = 1;
-        mSignY = 1;
-        mSignZ = 1;
-#endif
+                NODELET_INFO_STREAM(" * Camera coordinate system\t-> COORDINATE_SYSTEM_RIGHT_HANDED_Z_UP_X_FWD");
+                mIdxX = 0;
+                mIdxY = 1;
+                mIdxZ = 2;
+                mSignX = 1;
+                mSignY = 1;
+                mSignZ = 1;
+        #endif
 
         mZedParams.coordinate_units = sl::UNIT_METER;
         mZedParams.depth_mode = static_cast<sl::DEPTH_MODE>(mCamQuality);
@@ -242,7 +267,8 @@ namespace zed_wrapper {
         mZedParams.depth_minimum_distance = static_cast<float>(mCamMinDepth);
         mZedParams.camera_disable_self_calib = !mCameraSelfCalib;
 
-        if (mVerMajor > 2 || (mVerMajor == 2 && mVerMinor >= 8)) {
+        if (mVerMajor > 2 || (mVerMajor == 2 && mVerMinor >= 8)) 
+        {
             //mZedParams.color_enhancement = mColorEnhancement; TODO uncomment when the paramenter is available
         }
 
@@ -251,12 +277,14 @@ namespace zed_wrapper {
 
         mConnStatus = sl::ERROR_CODE_CAMERA_NOT_DETECTED;
 
-        while (mConnStatus != sl::SUCCESS) {
+        while (mConnStatus != sl::SUCCESS) 
+        {
             mConnStatus = mZed.open(mZedParams);
             NODELET_INFO_STREAM("ZED connection -> " << sl::toString(mConnStatus));
             std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
-            if (!mNhNs.ok()) {
+            if (!mNhNs.ok()) 
+            {
                 mStopNode = true; // Stops other threads
 
                 std::lock_guard<std::mutex> lock(mCloseZedMutex);
@@ -272,13 +300,18 @@ namespace zed_wrapper {
 
         mZedRealCamModel = mZed.getCameraInformation().camera_model;
 
-        if (mZedRealCamModel == sl::MODEL_ZED) {
-            if (mZedUserCamModel != 0) {
+        if (mZedRealCamModel == sl::MODEL_ZED) 
+        {
+            if (mZedUserCamModel != 0) 
+            {
                 NODELET_WARN("Camera model does not match user parameter. Please modify "
                              "the value of the parameter 'camera_model' to 0");
             }
-        } else if (mZedRealCamModel == sl::MODEL_ZED_M) {
-            if (mZedUserCamModel != 1) {
+        } 
+        else if (mZedRealCamModel == sl::MODEL_ZED_M) 
+        {
+            if (mZedUserCamModel != 1) 
+            {
                 NODELET_WARN("Camera model does not match user parameter. Please modify "
                              "the value of the parameter 'camera_model' to 1");
             }
@@ -288,22 +321,26 @@ namespace zed_wrapper {
         mZedSerialNumber = mZed.getCameraInformation().serial_number;
         NODELET_INFO_STREAM(" * Serial Number -> " << mZedSerialNumber);
 
-        if (!mSvoMode) {
+        if (!mSvoMode) 
+        {
             mFwVersion = mZed.getCameraInformation().firmware_version;
             NODELET_INFO_STREAM(" * FW Version\t -> " << mFwVersion);
-        } else {
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
-            NODELET_INFO_STREAM(" * Input type\t -> " << sl::toString(mZed.getCameraInformation().input_type).c_str());
-#else
-            NODELET_INFO_STREAM(" * Input type\t -> SVO");
-#endif
+        } 
+        else 
+        {
+            #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
+                        NODELET_INFO_STREAM(" * Input type\t -> " << sl::toString(mZed.getCameraInformation().input_type).c_str());
+            #else
+                        NODELET_INFO_STREAM(" * Input type\t -> SVO");
+            #endif
         }
 
         // Set the IMU topic names using real camera model
         string imu_topic;
         string imu_topic_raw;
 
-        if (mZedRealCamModel == sl::MODEL_ZED_M) {
+        if (mZedRealCamModel == sl::MODEL_ZED_M) 
+        {
             string imu_topic_name = "data";
             string imu_topic_raw_name = "data_raw";
             imu_topic = mImuTopicRoot + "/" + imu_topic_name;
@@ -366,21 +403,22 @@ namespace zed_wrapper {
         mPubCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_topic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubCloud.getTopic());
 
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
+        #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
 
-        if (mMappingEnabled) {
-            mPointcloudFusedMsg.reset(new sensor_msgs::PointCloud2);
-            mPubFusedCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_fused_topic, 1);
-            NODELET_INFO_STREAM("Advertised on topic " << mPubFusedCloud.getTopic() << " @ " << mFusedPcPubFreq << " Hz");
-        }
+                if (mMappingEnabled) {
+                    mPointcloudFusedMsg.reset(new sensor_msgs::PointCloud2);
+                    mPubFusedCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_fused_topic, 1);
+                    NODELET_INFO_STREAM("Advertised on topic " << mPubFusedCloud.getTopic() << " @ " << mFusedPcPubFreq << " Hz");
+                }
 
-#endif
+        #endif
 
         // Odometry and Pose publisher
         mPubPose = mNhNs.advertise<geometry_msgs::PoseStamped>(mPoseTopic, 1);
         NODELET_INFO_STREAM("Advertised on topic " << mPubPose.getTopic());
 
-        if (mPublishPoseCovariance) {
+        if (mPublishPoseCovariance) 
+        {
             mPubPoseCov = mNhNs.advertise<geometry_msgs::PoseWithCovarianceStamped>(pose_cov_topic, 1);
             NODELET_INFO_STREAM("Advertised on topic " << mPubPoseCov.getTopic());
         }
@@ -389,7 +427,8 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM("Advertised on topic " << mPubOdom.getTopic());
 
         // Camera Path
-        if (mPathPubRate > 0) {
+        if (mPathPubRate > 0) 
+        {
             mPubOdomPath = mNhNs.advertise<nav_msgs::Path>(odom_path_topic, 1, true);
             NODELET_INFO_STREAM("Advertised on topic " << mPubOdomPath.getTopic());
             mPubMapPath = mNhNs.advertise<nav_msgs::Path>(map_path_topic, 1, true);
@@ -398,21 +437,26 @@ namespace zed_wrapper {
             mPathTimer = mNhNs.createTimer(ros::Duration(1.0 / mPathPubRate),
                                            &ZEDWrapperNodelet::pathPubCallback, this);
 
-            if (mPathMaxCount != -1) {
+            if (mPathMaxCount != -1) 
+            {
                 NODELET_DEBUG_STREAM("Path vectors reserved " << mPathMaxCount << " poses.");
                 mOdomPath.reserve(mPathMaxCount);
                 mMapPath.reserve(mPathMaxCount);
 
                 NODELET_DEBUG_STREAM("Path vector sizes: " << mOdomPath.size() << " " << mMapPath.size());
             }
-        } else {
+        } 
+        else 
+        {
             NODELET_INFO_STREAM("Path topics not published -> mPathPubRate: " << mPathPubRate);
         }
 
         // Imu publisher
 
-        if (!mSvoMode) {
-            if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL_ZED_M) {
+        if (!mSvoMode) 
+        {
+            if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL_ZED_M) 
+            {
                 mPubImu = mNhNs.advertise<sensor_msgs::Imu>(imu_topic, 500);
                 NODELET_INFO_STREAM("Advertised on topic " << mPubImu.getTopic() << " @ "
                                     << mImuPubRate << " Hz");
@@ -423,7 +467,9 @@ namespace zed_wrapper {
                 mImuTimer = mNhNs.createTimer(ros::Duration(1.0 / mImuPubRate),
                                               &ZEDWrapperNodelet::imuPubCallback, this);
                 mImuPeriodMean_usec.reset(new sl_tools::CSmartMean(mImuPubRate / 2));
-            } else if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL_ZED) {
+            } 
+            else if (mImuPubRate > 0 && mZedRealCamModel == sl::MODEL_ZED) 
+            {
                 NODELET_WARN_STREAM(
                     "'imu_pub_rate' set to "
                     << mImuPubRate << " Hz"
@@ -438,7 +484,8 @@ namespace zed_wrapper {
         mSrvSvoStartRecording = mNhNs.advertiseService("start_svo_recording", &ZEDWrapperNodelet::on_start_svo_recording, this);
         mSrvSvoStopRecording = mNhNs.advertiseService("stop_svo_recording", &ZEDWrapperNodelet::on_stop_svo_recording, this);
 
-        if (mVerMajor > 2 || (mVerMajor == 2 && mVerMinor >= 8)) {
+        if (mVerMajor > 2 || (mVerMajor == 2 && mVerMinor >= 8)) 
+        {
             mSrvSetLedStatus = mNhNs.advertiseService("set_led_status", &ZEDWrapperNodelet::on_set_led_status, this);
             mSrvToggleLed = mNhNs.advertiseService("toggle_led", &ZEDWrapperNodelet::on_toggle_led, this);
             mSrvSvoStartStream = mNhNs.advertiseService("start_remote_stream", &ZEDWrapperNodelet::on_start_remote_stream, this);
@@ -452,7 +499,8 @@ namespace zed_wrapper {
         mDevicePollThread = std::thread(&ZEDWrapperNodelet::device_poll_thread_func, this);
     }
 
-    void ZEDWrapperNodelet::readParameters() {
+    void ZEDWrapperNodelet::readParameters() 
+    {
 
         NODELET_INFO_STREAM("*** PARAMETERS ***");
 
@@ -478,7 +526,8 @@ namespace zed_wrapper {
         int tmp_sn = 0;
         mNhNs.getParam("general/serial_number", tmp_sn);
 
-        if (tmp_sn > 0) {
+        if (tmp_sn > 0) 
+        {
             mZedSerialNumber = static_cast<int>(tmp_sn);
             NODELET_INFO_STREAM(" * Serial number\t\t-> " <<  mZedSerialNumber);
         }
@@ -487,13 +536,18 @@ namespace zed_wrapper {
         string camera_model;
         mNhNs.getParam("camera_model", camera_model);
 
-        if (camera_model == "zed") {
+        if (camera_model == "zed") 
+        {
             mZedUserCamModel = 0;
             NODELET_INFO_STREAM(" * Camera Model\t\t\t-> " <<  camera_model);
-        } else if (camera_model == "zedm") {
+        } 
+        else if (camera_model == "zedm") 
+        {
             mZedUserCamModel = 1;
             NODELET_INFO_STREAM(" * Camera Model\t\t\t-> " <<  camera_model);
-        } else {
+        } 
+        else 
+        {
             NODELET_ERROR_STREAM("Camera model not valid: " << camera_model);
         }
 
@@ -537,7 +591,8 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM(" * Path history size\t\t-> " << (mPathMaxCount == -1) ? std::string("INFINITE") : std::to_string(
                                 mPathMaxCount));
 
-        if (mPathMaxCount < 2 && mPathMaxCount != -1) {
+        if (mPathMaxCount < 2 && mPathMaxCount != -1) 
+        {
             mPathMaxCount = 2;
         }
 
@@ -557,17 +612,22 @@ namespace zed_wrapper {
         NODELET_INFO_STREAM(" * Two D mode\t\t\t-> " << (mTwoDMode ? "ENABLED" : "DISABLED"));
         mNhNs.param<double>("tracking/fixed_z_value", mFixedZValue, 0.0);
 
-        if (mTwoDMode) {
+        if (mTwoDMode) 
+        {
             NODELET_INFO_STREAM(" * Fixed Z value\t\t-> " << mFixedZValue);
         }
 
         mNhNs.getParam("tracking/publish_pose_covariance", mPublishPoseCovariance);
         NODELET_INFO_STREAM(" * Publish Pose Covariance\t-> " << (mPublishPoseCovariance ? "ENABLED" : "DISABLED"));
 
-        if (mVerMajor > 2 || (mVerMajor == 2 && mVerMinor >= 8)) {
+        if (mVerMajor > 2 || (mVerMajor == 2 && mVerMinor >= 8)) 
+        {
             mNhNs.getParam("tracking/fixed_covariance", mFixedCov);
-        } else {
-            if (mFixedCov) {
+        } 
+        else 
+        {
+            if (mFixedCov) 
+            {
                 ROS_WARN("Dynamic covariance is available with SDK v2.8 or newer");
             }
 
@@ -583,12 +643,16 @@ namespace zed_wrapper {
         // ----> Mapping
         mNhNs.param<bool>("mapping/mapping_enabled", mMappingEnabled, false);
 
-        if (mMappingEnabled) {
-            if ((mVerMajor == 2 && mVerMinor < 8) || mVerMajor < 2) {
+        if (mMappingEnabled) 
+        {
+            if ((mVerMajor == 2 && mVerMinor < 8) || mVerMajor < 2) 
+            {
                 NODELET_WARN_STREAM("The mapping module is available with SDK v2.8 or newer");
                 mMappingEnabled = false;
                 NODELET_INFO_STREAM(" * Mapping\t\t\t-> DISABLED");
-            } else {
+            } 
+            else 
+            {
                 NODELET_INFO_STREAM(" * Mapping\t\t\t-> ENABLED");
 
                 mNhNs.getParam("mapping/resolution", mMappingRes);
@@ -597,7 +661,9 @@ namespace zed_wrapper {
                 mNhNs.getParam("mapping/fused_pointcloud_freq", mFusedPcPubFreq);
                 NODELET_INFO_STREAM(" * Fused point cloud freq:\t-> " << mFusedPcPubFreq << " Hz");
             }
-        } else {
+        } 
+        else 
+        {
             NODELET_INFO_STREAM(" * Mapping\t\t\t-> DISABLED");
         }
 
@@ -617,10 +683,12 @@ namespace zed_wrapper {
         int svo_compr = 0;
         mNhNs.getParam("general/svo_compression", svo_compr);
 
-        if (svo_compr >= sl::SVO_COMPRESSION_MODE_LAST) {
+        if (svo_compr >= sl::SVO_COMPRESSION_MODE_LAST) 
+        {
             NODELET_WARN_STREAM("The parameter `general/svo_compression` has an invalid value. Please check it in the configuration file `common.yaml`");
 
-            if ((mVerMajor == 2 && mVerMinor < 7) || mVerMajor < 2) {
+            if ((mVerMajor == 2 && mVerMinor < 7) || mVerMajor < 2) 
+            {
                 NODELET_WARN_STREAM("Note: AVCHD (H264) and HEVC (H265) compression modes are available with SDK v2.7 or newer");
             }
 
@@ -689,12 +757,14 @@ namespace zed_wrapper {
         mNhNs.getParam("mat_resize_factor", mCamMatResizeFactor);
 
 
-        if (mCamMatResizeFactor < 0.1) {
+        if (mCamMatResizeFactor < 0.1) 
+        {
             mCamMatResizeFactor = 0.1;
             NODELET_WARN_STREAM("Minimum allowed values for 'mat_resize_factor' is 0.1");
         }
 
-        if (mCamMatResizeFactor > 1.0) {
+        if (mCamMatResizeFactor > 1.0) 
+        {
             mCamMatResizeFactor = 1.0;
             NODELET_WARN_STREAM("Maximum allowed values for 'mat_resize_factor' is 1.0");
         }
@@ -714,7 +784,8 @@ namespace zed_wrapper {
         mNhNs.getParam("point_cloud_freq", mPointCloudFreq);
         NODELET_INFO_STREAM(" * [DYN] point_cloud_freq\t-> " << mPointCloudFreq << " Hz");
 
-        if (mCamAutoExposure) {
+        if (mCamAutoExposure) 
+        {
             mTriggerAutoExposure = true;
         }
 
@@ -722,10 +793,13 @@ namespace zed_wrapper {
 
     }
 
-    void ZEDWrapperNodelet::checkResolFps() {
-        switch (mCamResol) {
+    void ZEDWrapperNodelet::checkResolFps() 
+    {
+        switch (mCamResol) 
+        {
         case sl::RESOLUTION_HD2K:
-            if (mCamFrameRate != 15) {
+            if (mCamFrameRate != 15) 
+            {
                 NODELET_WARN_STREAM("Wrong FrameRate ("
                                     << mCamFrameRate
                                     << ") for the resolution HD2K. Set to 15 FPS.");
@@ -735,21 +809,27 @@ namespace zed_wrapper {
             break;
 
         case sl::RESOLUTION_HD1080:
-            if (mCamFrameRate == 15 || mCamFrameRate == 30) {
+            if (mCamFrameRate == 15 || mCamFrameRate == 30) 
+            {
                 break;
             }
 
-            if (mCamFrameRate > 15 && mCamFrameRate < 30) {
+            if (mCamFrameRate > 15 && mCamFrameRate < 30) 
+            {
                 NODELET_WARN_STREAM("Wrong FrameRate ("
                                     << mCamFrameRate
                                     << ") for the resolution HD1080. Set to 15 FPS.");
                 mCamFrameRate = 15;
-            } else if (mCamFrameRate > 30) {
+            } 
+            else if (mCamFrameRate > 30) 
+            {
                 NODELET_WARN_STREAM("Wrong FrameRate ("
                                     << mCamFrameRate
                                     << ") for the resolution HD1080. Set to 30 FPS.");
                 mCamFrameRate = 30;
-            } else {
+            } 
+            else 
+            {
                 NODELET_WARN_STREAM("Wrong FrameRate ("
                                     << mCamFrameRate
                                     << ") for the resolution HD1080. Set to 15 FPS.");
@@ -759,26 +839,34 @@ namespace zed_wrapper {
             break;
 
         case sl::RESOLUTION_HD720:
-            if (mCamFrameRate == 15 || mCamFrameRate == 30 || mCamFrameRate == 60) {
+            if (mCamFrameRate == 15 || mCamFrameRate == 30 || mCamFrameRate == 60) 
+            {
                 break;
             }
 
-            if (mCamFrameRate > 15 && mCamFrameRate < 30) {
+            if (mCamFrameRate > 15 && mCamFrameRate < 30) 
+            {
                 NODELET_WARN_STREAM("Wrong FrameRate ("
                                     << mCamFrameRate
                                     << ") for the resolution HD720. Set to 15 FPS.");
                 mCamFrameRate = 15;
-            } else if (mCamFrameRate > 30 && mCamFrameRate < 60) {
+            } 
+            else if (mCamFrameRate > 30 && mCamFrameRate < 60) 
+            {
                 NODELET_WARN_STREAM("Wrong FrameRate ("
                                     << mCamFrameRate
                                     << ") for the resolution HD720. Set to 30 FPS.");
                 mCamFrameRate = 30;
-            } else if (mCamFrameRate > 60) {
+            } 
+            else if (mCamFrameRate > 60) 
+            {
                 NODELET_WARN_STREAM("Wrong FrameRate ("
                                     << mCamFrameRate
                                     << ") for the resolution HD720. Set to 60 FPS.");
                 mCamFrameRate = 60;
-            } else {
+            } 
+            else 
+            {
                 NODELET_WARN_STREAM("Wrong FrameRate ("
                                     << mCamFrameRate
                                     << ") for the resolution HD720. Set to 15 FPS.");
@@ -789,31 +877,41 @@ namespace zed_wrapper {
 
         case sl::RESOLUTION_VGA:
             if (mCamFrameRate == 15 || mCamFrameRate == 30 || mCamFrameRate == 60 ||
-                mCamFrameRate == 100) {
+                mCamFrameRate == 100) 
+            {
                 break;
             }
 
-            if (mCamFrameRate > 15 && mCamFrameRate < 30) {
+            if (mCamFrameRate > 15 && mCamFrameRate < 30) 
+            {
                 NODELET_WARN_STREAM("Wrong FrameRate ("
                                     << mCamFrameRate
                                     << ") for the resolution VGA. Set to 15 FPS.");
                 mCamFrameRate = 15;
-            } else if (mCamFrameRate > 30 && mCamFrameRate < 60) {
+            } 
+            else if (mCamFrameRate > 30 && mCamFrameRate < 60) 
+            {
                 NODELET_WARN_STREAM("Wrong FrameRate ("
                                     << mCamFrameRate
                                     << ") for the resolution VGA. Set to 30 FPS.");
                 mCamFrameRate = 30;
-            } else if (mCamFrameRate > 60 && mCamFrameRate < 100) {
+            } 
+            else if (mCamFrameRate > 60 && mCamFrameRate < 100) 
+            {
                 NODELET_WARN_STREAM("Wrong FrameRate ("
                                     << mCamFrameRate
                                     << ") for the resolution VGA. Set to 60 FPS.");
                 mCamFrameRate = 60;
-            } else if (mCamFrameRate > 100) {
+            } 
+            else if (mCamFrameRate > 100) 
+            {
                 NODELET_WARN_STREAM("Wrong FrameRate ("
                                     << mCamFrameRate
                                     << ") for the resolution VGA. Set to 100 FPS.");
                 mCamFrameRate = 100;
-            } else {
+            } 
+            else 
+            {
                 NODELET_WARN_STREAM("Wrong FrameRate ("
                                     << mCamFrameRate
                                     << ") for the resolution VGA. Set to 15 FPS.");
@@ -829,7 +927,8 @@ namespace zed_wrapper {
         }
     }
 
-    void ZEDWrapperNodelet::initTransforms() {
+    void ZEDWrapperNodelet::initTransforms() 
+    {
         // According to REP 105 -> http://www.ros.org/reps/rep-0105.html
 
         // base_link <- odom <- map
@@ -845,7 +944,8 @@ namespace zed_wrapper {
         // <---- Dynamic transforms
     }
 
-    bool ZEDWrapperNodelet::getCamera2BaseTransform() {
+    bool ZEDWrapperNodelet::getCamera2BaseTransform() 
+    {
         ROS_DEBUG("Getting static TF from '%s' to '%s'", mCameraFrameId.c_str(), mBaseFrameId.c_str());
 
         mCamera2BaseTransfValid = false;
@@ -853,7 +953,8 @@ namespace zed_wrapper {
 
         // ----> Static transforms
         // Sensor to Base link
-        try {
+        try 
+        {
 
             // Save the transformation
             geometry_msgs::TransformStamped c2b =
@@ -872,8 +973,11 @@ namespace zed_wrapper {
             ROS_INFO(" * Rotation: {%.3f,%.3f,%.3f}",
                      roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
 
-        } catch (tf2::TransformException& ex) {
-            if (++errCount % 50 == 0) {
+        } 
+        catch (tf2::TransformException& ex) 
+        {
+            if (++errCount % 50 == 0) 
+            {
                 ROS_WARN("The tf from '%s' to '%s' does not seem to be available, "
                          "will assume it as identity!",
                          mCameraFrameId.c_str(), mBaseFrameId.c_str());
@@ -891,7 +995,8 @@ namespace zed_wrapper {
         return true;
     }
 
-    bool ZEDWrapperNodelet::getSens2CameraTransform() {
+    bool ZEDWrapperNodelet::getSens2CameraTransform() 
+    {
         ROS_DEBUG("Getting static TF from '%s' to '%s'", mDepthFrameId.c_str(), mCameraFrameId.c_str());
 
         mSensor2CameraTransfValid = false;
@@ -899,7 +1004,8 @@ namespace zed_wrapper {
 
         // ----> Static transforms
         // Sensor to Camera Center
-        try {
+        try 
+        {
             // Save the transformation
             geometry_msgs::TransformStamped s2c =
                 mTfBuffer->lookupTransform(mDepthFrameId, mCameraFrameId, ros::Time(0), ros::Duration(2));
@@ -915,8 +1021,11 @@ namespace zed_wrapper {
                      mSensor2CameraTransf.getOrigin().x(), mSensor2CameraTransf.getOrigin().y(), mSensor2CameraTransf.getOrigin().z());
             ROS_INFO(" * Rotation: {%.3f,%.3f,%.3f}",
                      roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
-        } catch (tf2::TransformException& ex) {
-            if (++errCount % 50 == 0) {
+        } 
+        catch (tf2::TransformException& ex) 
+        {
+            if (++errCount % 50 == 0) 
+            {
                 ROS_WARN("The tf from '%s' to '%s' does not seem to be available, "
                          "will assume it as identity!",
                          mDepthFrameId.c_str(), mCameraFrameId.c_str());
@@ -934,7 +1043,8 @@ namespace zed_wrapper {
         return true;
     }
 
-    bool ZEDWrapperNodelet::getSens2BaseTransform() {
+    bool ZEDWrapperNodelet::getSens2BaseTransform() 
+    {
         ROS_DEBUG("Getting static TF from '%s' to '%s'", mDepthFrameId.c_str(), mBaseFrameId.c_str());
 
         mSensor2BaseTransfValid = false;
@@ -942,7 +1052,8 @@ namespace zed_wrapper {
 
         // ----> Static transforms
         // Sensor to Base link
-        try {
+        try 
+        {
             // Save the transformation
             geometry_msgs::TransformStamped s2b =
                 mTfBuffer->lookupTransform(mDepthFrameId, mBaseFrameId, ros::Time(0), ros::Duration(2));
@@ -959,8 +1070,11 @@ namespace zed_wrapper {
             ROS_INFO(" * Rotation: {%.3f,%.3f,%.3f}",
                      roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
 
-        } catch (tf2::TransformException& ex) {
-            if (++errCount % 50 == 0) {
+        } 
+        catch (tf2::TransformException& ex) 
+        {
+            if (++errCount % 50 == 0) 
+            {
                 ROS_WARN("The tf from '%s' to '%s' does not seem to be available, "
                          "will assume it as identity!",
                          mDepthFrameId.c_str(), mBaseFrameId.c_str());
@@ -978,8 +1092,8 @@ namespace zed_wrapper {
         return true;
     }
 
-    bool ZEDWrapperNodelet::set_pose(float xt, float yt, float zt, float rr,
-                                     float pr, float yr) {
+    bool ZEDWrapperNodelet::set_pose(float xt, float yt, float zt, float rr,float pr, float yr) 
+    {
         initTransforms();
 
         if (!mSensor2BaseTransfValid) {
@@ -1022,12 +1136,10 @@ namespace zed_wrapper {
         mInitialPoseSl.setOrientation(orient);
 
         return (mSensor2BaseTransfValid & mSensor2CameraTransfValid & mCamera2BaseTransfValid);
-
     }
 
-    bool ZEDWrapperNodelet::on_set_pose(
-        zed_wrapper::set_pose::Request& req,
-        zed_wrapper::set_pose::Response& res) {
+    bool ZEDWrapperNodelet::on_set_pose(zed_wrapper::set_pose::Request& req,zed_wrapper::set_pose::Response& res) 
+    {
         mInitialBasePose.resize(6);
         mInitialBasePose[0] = req.x;
         mInitialBasePose[1] = req.y;
@@ -1037,7 +1149,8 @@ namespace zed_wrapper {
         mInitialBasePose[5] = req.Y;
 
         if (!set_pose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
-                      mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5])) {
+                      mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5])) 
+        {
             res.done = false;
             return false;
         }
@@ -1055,16 +1168,17 @@ namespace zed_wrapper {
         return true;
     }
 
-    bool ZEDWrapperNodelet::on_reset_tracking(
-        zed_wrapper::reset_tracking::Request& req,
-        zed_wrapper::reset_tracking::Response& res) {
-        if (!mTrackingActivated) {
+    bool ZEDWrapperNodelet::on_reset_tracking(zed_wrapper::reset_tracking::Request& req,zed_wrapper::reset_tracking::Response& res) 
+    {
+        if (!mTrackingActivated) 
+        {
             res.reset_done = false;
             return false;
         }
 
         if (!set_pose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
-                      mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5])) {
+                      mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5])) 
+        {
             res.reset_done = false;
             return false;
         }
@@ -1082,52 +1196,57 @@ namespace zed_wrapper {
         return true;
     }
 
-    bool ZEDWrapperNodelet::on_reset_odometry(
-        zed_wrapper::reset_odometry::Request& req,
-        zed_wrapper::reset_odometry::Response& res) {
+    bool ZEDWrapperNodelet::on_reset_odometry(zed_wrapper::reset_odometry::Request& req,zed_wrapper::reset_odometry::Response& res) 
+    {
         mResetOdom = true;
         res.reset_done = true;
         return true;
     }
 
-    void ZEDWrapperNodelet::start_mapping() {
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
+    void ZEDWrapperNodelet::start_mapping() 
+    {
+        #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
 
-        if (!mMappingEnabled) {
-            NODELET_WARN_STREAM("Cannot enable MAPPING. The parameter `mapping_enable` is set to FALSE");
+                if (!mMappingEnabled) 
+                {
+                    NODELET_WARN_STREAM("Cannot enable MAPPING. The parameter `mapping_enable` is set to FALSE");
 
-            return;
-        }
+                    return;
+                }
 
-        NODELET_INFO_STREAM("*** Starting Spatial Mapping ***");
+                NODELET_INFO_STREAM("*** Starting Spatial Mapping ***");
 
-        sl::SpatialMappingParameters params;
-        params.map_type = sl::SpatialMappingParameters::SPATIAL_MAP_TYPE_FUSED_POINT_CLOUD;
-        params.use_chunk_only = true;
-        params.set(static_cast<sl::SpatialMappingParameters::MAPPING_RESOLUTION>(mMappingRes));
+                sl::SpatialMappingParameters params;
+                params.map_type = sl::SpatialMappingParameters::SPATIAL_MAP_TYPE_FUSED_POINT_CLOUD;
+                params.use_chunk_only = true;
+                params.set(static_cast<sl::SpatialMappingParameters::MAPPING_RESOLUTION>(mMappingRes));
 
-        sl::ERROR_CODE err = mZed.enableSpatialMapping(params);
+                sl::ERROR_CODE err = mZed.enableSpatialMapping(params);
 
-        if (err == sl::SUCCESS) {
-            mMappingActivated = true;
+                if (err == sl::SUCCESS) 
+                {
+                    mMappingActivated = true;
 
-            mFusedPcTimer = mNhNs.createTimer(ros::Duration(1.0 / mFusedPcPubFreq), &ZEDWrapperNodelet::pubFusedPointCloudCallback,
-                                              this);
+                    mFusedPcTimer = mNhNs.createTimer(ros::Duration(1.0 / mFusedPcPubFreq), &ZEDWrapperNodelet::pubFusedPointCloudCallback,
+                                                      this);
 
-            ROS_INFO_STREAM(" * Resolution: " << params.resolution_meter << " m");
-        } else {
-            mMappingActivated = false;
-            mFusedPcTimer.stop();
+                    ROS_INFO_STREAM(" * Resolution: " << params.resolution_meter << " m");
+                } 
+                else 
+                {
+                    mMappingActivated = false;
+                    mFusedPcTimer.stop();
 
-            ROS_WARN("Mapping not activated: %s", sl::toString(err).c_str());
-        }
+                    ROS_WARN("Mapping not activated: %s", sl::toString(err).c_str());
+                }
 
-#else
-        NODELET_WARN("Enabling MAPPING requires the ZED SDK v2.8 or newer");
-#endif
+        #else
+                NODELET_WARN("Enabling MAPPING requires the ZED SDK v2.8 or newer");
+        #endif
     }
 
-    void ZEDWrapperNodelet::start_tracking() {
+    void ZEDWrapperNodelet::start_tracking() 
+    {
         NODELET_INFO_STREAM("*** Starting Positional Tracking ***");
 
         ROS_INFO(" * Waiting for valid static transformations...");
@@ -1153,7 +1272,8 @@ namespace zed_wrapper {
 
         } while (transformOk == false);
 
-        if (transformOk) {
+        if (transformOk) 
+        {
             ROS_DEBUG("Time required to get valid static transforms: %g sec", elapsed / 1000.);
         }
 
@@ -1164,7 +1284,8 @@ namespace zed_wrapper {
                  mInitialPoseSl.getOrientation().ox, mInitialPoseSl.getOrientation().oy,
                  mInitialPoseSl.getOrientation().oz, mInitialPoseSl.getOrientation().ow);
 
-        if (mOdometryDb != "" && !sl_tools::file_exist(mOdometryDb)) {
+        if (mOdometryDb != "" && !sl_tools::file_exist(mOdometryDb)) 
+        {
             mOdometryDb = "";
             NODELET_WARN("odometry_DB path doesn't exist or is unreachable.");
         }
@@ -1181,15 +1302,15 @@ namespace zed_wrapper {
         trackParams.enable_imu_fusion = mImuFusion;
         trackParams.initial_world_transform = mInitialPoseSl;
 
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
-        trackParams.set_floor_as_origin = mFloorAlignment;
-#else
+        #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=6))
+                trackParams.set_floor_as_origin = mFloorAlignment;
+        #else
 
-        if (mFloorAlignment)  {
-            NODELET_WARN("Floor Alignment is available with ZED SDK v2.6 or newer");
-        }
+                if (mFloorAlignment)  {
+                    NODELET_WARN("Floor Alignment is available with ZED SDK v2.6 or newer");
+                }
 
-#endif
+        #endif
 
         sl::ERROR_CODE err = mZed.enableTracking(trackParams);
 
@@ -1202,7 +1323,8 @@ namespace zed_wrapper {
         }
     }
 
-    void ZEDWrapperNodelet::publishOdom(tf2::Transform odom2baseTransf, sl::Pose& slPose, ros::Time t) {
+    void ZEDWrapperNodelet::publishOdom(tf2::Transform odom2baseTransf, sl::Pose& slPose, ros::Time t) 
+    {
         nav_msgs::Odometry odom;
         odom.header.stamp = t;
         odom.header.frame_id = mOdometryFrameId; // frame
@@ -1219,26 +1341,35 @@ namespace zed_wrapper {
         odom.pose.pose.orientation.w = base2odom.rotation.w;
 
         // Odometry pose covariance if available
-        if (!mFixedCov && mPublishPoseCovariance) {
-            for (size_t i = 0; i < odom.pose.covariance.size(); i++) {
+        if (!mFixedCov && mPublishPoseCovariance) 
+        {
+            for (size_t i = 0; i < odom.pose.covariance.size(); i++) 
+            {
                 odom.pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]);
 
-                if (mTwoDMode) {
-                    if (i == 14 || i == 21 || i == 28) {
+                if (mTwoDMode) 
+                {
+                    if (i == 14 || i == 21 || i == 28) 
+                    {
                         odom.pose.covariance[i] = 1e-9;    // Very low covariance if 2D mode
-                    } else if ((i >= 2 && i <= 4) ||
+                    } 
+                    else if ((i >= 2 && i <= 4) ||
                                (i >= 8 && i <= 10) ||
                                (i >= 12 && i <= 13) ||
                                (i >= 15 && i <= 16) ||
                                (i >= 18 && i <= 20) ||
                                (i == 22) ||
-                               (i >= 24 && i <= 27)) {
+                               (i >= 24 && i <= 27)) 
+                    {
                         odom.pose.covariance[i] = 0.0;
                     }
                 }
             }
-        } else {
-            for (size_t i = 0; i < odom.pose.covariance.size(); i += 7) {
+        } 
+        else 
+        {
+            for (size_t i = 0; i < odom.pose.covariance.size(); i += 7) 
+            {
                 odom.pose.covariance[i] = mFixedCovValue;
             }
         }
@@ -1247,13 +1378,17 @@ namespace zed_wrapper {
         mPubOdom.publish(odom);
     }
 
-    void ZEDWrapperNodelet::publishPose(ros::Time t) {
+    void ZEDWrapperNodelet::publishPose(ros::Time t) 
+    {
         tf2::Transform base_pose;
         base_pose.setIdentity();
 
-        if (mPublishMapTf) {
+        if (mPublishMapTf) 
+        {
             base_pose = mMap2BaseTransf;
-        } else if (mPublishTf) {
+        } 
+        else if (mPublishTf) 
+        {
             base_pose = mOdom2BaseTransf;
         }
 
@@ -1274,7 +1409,8 @@ namespace zed_wrapper {
         pose.orientation.z = base2frame.rotation.z;
         pose.orientation.w = base2frame.rotation.w;
 
-        if (mPubPose.getNumSubscribers() > 0) {
+        if (mPubPose.getNumSubscribers() > 0) 
+        {
 
             geometry_msgs::PoseStamped poseNoCov;
 
@@ -1283,36 +1419,48 @@ namespace zed_wrapper {
 
             // Publish pose stamped message
             mPubPose.publish(poseNoCov);
+            ROS_INFO("publishing pose now ...");
         }
 
-        if (mPublishPoseCovariance) {
-            if (mPubPoseCov.getNumSubscribers() > 0) {
+        if (mPublishPoseCovariance) 
+        {
+            if (mPubPoseCov.getNumSubscribers() > 0) 
+            {
                 geometry_msgs::PoseWithCovarianceStamped poseCov;
 
                 poseCov.header = header;
                 poseCov.pose.pose = pose;
 
                 // Odometry pose covariance if available
-                if (!mFixedCov) {
-                    for (size_t i = 0; i < poseCov.pose.covariance.size(); i++) {
+                if (!mFixedCov) 
+                {
+                    for (size_t i = 0; i < poseCov.pose.covariance.size(); i++) 
+                    {
                         poseCov.pose.covariance[i] = static_cast<double>(mLastZedPose.pose_covariance[i]);
 
-                        if (mTwoDMode) {
-                            if (i == 14 || i == 21 || i == 28) {
+                        if (mTwoDMode) 
+                        {
+                            if (i == 14 || i == 21 || i == 28) 
+                            {
                                 poseCov.pose.covariance[i] = 1e-9;    // Very low covariance if 2D mode
-                            } else if ((i >= 2 && i <= 4) ||
+                            } 
+                            else if ((i >= 2 && i <= 4) ||
                                        (i >= 8 && i <= 10) ||
                                        (i >= 12 && i <= 13) ||
                                        (i >= 15 && i <= 16) ||
                                        (i >= 18 && i <= 20) ||
                                        (i == 22) ||
-                                       (i >= 24 && i <= 27)) {
+                                       (i >= 24 && i <= 27)) 
+                            {
                                 poseCov.pose.covariance[i] = 0.0;
                             }
                         }
                     }
-                } else {
-                    for (size_t i = 0; i < poseCov.pose.covariance.size(); i += 7) {
+                } 
+                else 
+                {
+                    for (size_t i = 0; i < poseCov.pose.covariance.size(); i += 7) 
+                    {
                         poseCov.pose.covariance[i] = mFixedCovValue;
                     }
                 }
@@ -1323,16 +1471,20 @@ namespace zed_wrapper {
         }
     }
 
-    void ZEDWrapperNodelet::publishOdomFrame(tf2::Transform odomTransf, ros::Time t) {
-        if (!mSensor2BaseTransfValid) {
+    void ZEDWrapperNodelet::publishOdomFrame(tf2::Transform odomTransf, ros::Time t) 
+    {
+        if (!mSensor2BaseTransfValid) 
+        {
             getSens2BaseTransform();
         }
 
-        if (!mSensor2CameraTransfValid) {
+        if (!mSensor2CameraTransfValid) 
+        {
             getSens2CameraTransform();
         }
 
-        if (!mCamera2BaseTransfValid) {
+        if (!mCamera2BaseTransfValid) 
+        {
             getCamera2BaseTransform();
         }
 
@@ -1346,16 +1498,20 @@ namespace zed_wrapper {
         mTransformOdomBroadcaster.sendTransform(transformStamped);
     }
 
-    void ZEDWrapperNodelet::publishPoseFrame(tf2::Transform baseTransform, ros::Time t) {
-        if (!mSensor2BaseTransfValid) {
+    void ZEDWrapperNodelet::publishPoseFrame(tf2::Transform baseTransform, ros::Time t) 
+    {
+        if (!mSensor2BaseTransfValid) 
+        {
             getSens2BaseTransform();
         }
 
-        if (!mSensor2CameraTransfValid) {
+        if (!mSensor2CameraTransfValid) 
+        {
             getSens2CameraTransform();
         }
 
-        if (!mCamera2BaseTransfValid) {
+        if (!mCamera2BaseTransfValid) 
+        {
             getCamera2BaseTransform();
         }
 
@@ -1369,16 +1525,20 @@ namespace zed_wrapper {
         mTransformPoseBroadcaster.sendTransform(transformStamped);
     }
 
-    void ZEDWrapperNodelet::publishImuFrame(tf2::Transform imuTransform, ros::Time t) {
-        if (!mSensor2BaseTransfValid) {
+    void ZEDWrapperNodelet::publishImuFrame(tf2::Transform imuTransform, ros::Time t) 
+    {
+        if (!mSensor2BaseTransfValid) 
+        {
             getSens2BaseTransform();
         }
 
-        if (!mSensor2CameraTransfValid) {
+        if (!mSensor2CameraTransfValid) 
+        {
             getSens2CameraTransform();
         }
 
-        if (!mCamera2BaseTransfValid) {
+        if (!mCamera2BaseTransfValid) 
+        {
             getCamera2BaseTransform();
         }
 
@@ -1394,13 +1554,16 @@ namespace zed_wrapper {
 
     void ZEDWrapperNodelet::publishImage(sl::Mat img,
                                          image_transport::CameraPublisher& pubImg, sensor_msgs::CameraInfoPtr camInfoMsg,
-                                         string imgFrameId, ros::Time t) {
+                                         string imgFrameId, ros::Time t) 
+    {
         pubImg.publish(sl_tools::imageToROSmsg(img, imgFrameId, t), camInfoMsg);
     }
 
-    void ZEDWrapperNodelet::publishDepth(sl::Mat depth, ros::Time t) {
+    void ZEDWrapperNodelet::publishDepth(sl::Mat depth, ros::Time t) 
+    {
 
-        if (!mOpenniDepthMode) {
+        if (!mOpenniDepthMode) 
+        {
             mPubDepth.publish(*sl_tools::imageToROSmsg(depth, mDepthOptFrameId, t), *mDepthCamInfoMsg, t);
             return;
         }
@@ -1427,14 +1590,16 @@ namespace zed_wrapper {
         int dataSize = depthMessage->width * depthMessage->height;
         sl::float1* depthDataPtr = depth.getPtr<sl::float1>();
 
-        for (int i = 0; i < dataSize; i++) {
+        for (int i = 0; i < dataSize; i++) 
+        {
             *(data++) = static_cast<uint16_t>(std::round(*(depthDataPtr++) * 1000));    // in mm, rounded
         }
 
         mPubDepth.publish(depthMessage, mDepthCamInfoMsg);
     }
 
-    void ZEDWrapperNodelet::publishDisparity(sl::Mat disparity, ros::Time t) {
+    void ZEDWrapperNodelet::publishDisparity(sl::Mat disparity, ros::Time t) 
+    {
 
         sl::CameraInformation zedParam =
             mZed.getCameraInformation(sl::Resolution(mMatWidth, mMatHeight));
@@ -1447,7 +1612,8 @@ namespace zed_wrapper {
         msg.f = zedParam.calibration_parameters.left_cam.fx;
         msg.T = zedParam.calibration_parameters.T.x;
 
-        if (msg.T > 0) {
+        if (msg.T > 0) 
+        {
             msg.T *= -1.0f;
         }
 
@@ -1456,16 +1622,23 @@ namespace zed_wrapper {
         mPubDisparity.publish(msg);
     }
 
-    void ZEDWrapperNodelet::pointcloud_thread_func() {
+    void ZEDWrapperNodelet::pointcloud_thread_func() 
+    {
         std::unique_lock<std::mutex> lock(mPcMutex);
 
-        while (!mStopNode) {
-            while (!mPcDataReady) {  // loop to avoid spurious wakeups
-                if (mPcDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(500)) == std::cv_status::timeout) {
+        while (!mStopNode) 
+        {
+            while (!mPcDataReady) 
+            {  // loop to avoid spurious wakeups
+                if (mPcDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(500)) == std::cv_status::timeout) 
+                {
                     // Check thread stopping
-                    if (mStopNode) {
+                    if (mStopNode) 
+                    {
                         return;
-                    } else {
+                    } 
+                    else 
+                    {
                         continue;
                     }
                 }
@@ -1479,7 +1652,8 @@ namespace zed_wrapper {
 
             double elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_time).count();
 
-            if (elapsed_msec < pc_period_msec) {
+            if (elapsed_msec < pc_period_msec) 
+            {
                 std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<long int>(pc_period_msec - elapsed_msec)));
             }
 
@@ -1495,7 +1669,8 @@ namespace zed_wrapper {
         NODELET_DEBUG("Pointcloud thread finished");
     }
 
-    void ZEDWrapperNodelet::publishPointCloud() {
+    void ZEDWrapperNodelet::publishPointCloud() 
+    {
         // Publish freq calculation
         static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
         std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
@@ -1512,7 +1687,8 @@ namespace zed_wrapper {
 
         mPointcloudMsg->header.stamp = mPointCloudTime;
 
-        if (mPointcloudMsg->width != mMatWidth || mPointcloudMsg->height != mMatHeight) {
+        if (mPointcloudMsg->width != mMatWidth || mPointcloudMsg->height != mMatHeight) 
+        {
             mPointcloudMsg->header.frame_id = mPointCloudFrameId; // Set the header values of the ROS message
 
             mPointcloudMsg->is_bigendian = false;
@@ -1533,124 +1709,135 @@ namespace zed_wrapper {
         sl::Vector4<float>* cpu_cloud = mCloud.getPtr<sl::float4>();
         float* ptCloudPtr = (float*)(&mPointcloudMsg->data[0]);
 
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=5) )
-        memcpy(ptCloudPtr, (float*)cpu_cloud,
-               4 * ptsCount * sizeof(float)); // We can do a direct memcpy since data organization is the same
-#else
+        #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=5) )
+                memcpy(ptCloudPtr, (float*)cpu_cloud,
+                       4 * ptsCount * sizeof(float)); // We can do a direct memcpy since data organization is the same
+        #else
 
-        for (size_t i = 0; i < ptsCount; ++i) {
-            ptCloudPtr[i * 4 + 0] = mSignX * cpu_cloud[i][mIdxX];
-            ptCloudPtr[i * 4 + 1] = mSignY * cpu_cloud[i][mIdxY];
-            ptCloudPtr[i * 4 + 2] = mSignZ * cpu_cloud[i][mIdxZ];
-            ptCloudPtr[i * 4 + 3] = cpu_cloud[i][3];
-        }
+                for (size_t i = 0; i < ptsCount; ++i) {
+                    ptCloudPtr[i * 4 + 0] = mSignX * cpu_cloud[i][mIdxX];
+                    ptCloudPtr[i * 4 + 1] = mSignY * cpu_cloud[i][mIdxY];
+                    ptCloudPtr[i * 4 + 2] = mSignZ * cpu_cloud[i][mIdxZ];
+                    ptCloudPtr[i * 4 + 3] = cpu_cloud[i][3];
+                }
 
-#endif
+        #endif
 
         // Pointcloud publishing
         mPubCloud.publish(mPointcloudMsg);
     }
 
-    void ZEDWrapperNodelet::pubFusedPointCloudCallback(const ros::TimerEvent& e) {
+    void ZEDWrapperNodelet::pubFusedPointCloudCallback(const ros::TimerEvent& e) 
+    {
 
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
-        uint32_t fusedCloudSubnumber = mPubFusedCloud.getNumSubscribers();
+        #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
+                uint32_t fusedCloudSubnumber = mPubFusedCloud.getNumSubscribers();
 
-        if (fusedCloudSubnumber == 0) {
-            return;
-        }
-
-        std::lock_guard<std::mutex> lock(mCloseZedMutex);
-
-        if (!mZed.isOpened()) {
-            return;
-        }
-
-        mPointcloudFusedMsg->header.stamp = mFrameTimestamp;
-        mZed.requestSpatialMapAsync();
-
-        while (mZed.getSpatialMapRequestStatusAsync() == sl::ERROR_CODE_FAILURE) {
-            //Mesh is still generating
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        }
-
-        sl::ERROR_CODE res = mZed.retrieveSpatialMapAsync(mFusedPC);
-
-        if (res != sl::SUCCESS) {
-            ROS_WARN_STREAM("Fused point cloud not extracted: " << sl::toString(res).c_str());
-            return;
-        }
-
-        size_t ptsCount = mFusedPC.getNumberOfPoints();
-        bool resized = false;
-
-        if (mPointcloudFusedMsg->width != ptsCount || mPointcloudFusedMsg->height != 1) {
-            // Initialize Point Cloud message
-            // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
-            mPointcloudFusedMsg->header.frame_id = mWorldFrameId; // Set the header values of the ROS message
-
-            mPointcloudFusedMsg->is_bigendian = false;
-            mPointcloudFusedMsg->is_dense = false;
-
-            mPointcloudFusedMsg->width = ptsCount;
-            mPointcloudFusedMsg->height = 1;
-
-            sensor_msgs::PointCloud2Modifier modifier(*mPointcloudFusedMsg);
-            modifier.setPointCloud2Fields(4,
-                                          "x", 1, sensor_msgs::PointField::FLOAT32,
-                                          "y", 1, sensor_msgs::PointField::FLOAT32,
-                                          "z", 1, sensor_msgs::PointField::FLOAT32,
-                                          "rgb", 1, sensor_msgs::PointField::FLOAT32);
-
-            resized = true;
-        }
-
-        std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
-
-        //ROS_INFO_STREAM("Chunks: " << mFusedPC.chunks.size());
-
-        int index = 0;
-        float* ptCloudPtr = (float*)(&mPointcloudFusedMsg->data[0]);
-        int updated = 0;
-
-        for (int c = 0; c < mFusedPC.chunks.size(); c++) {
-            if (mFusedPC.chunks[c].has_been_updated || resized) {
-                updated++;
-
-                size_t chunkSize = mFusedPC.chunks[c].vertices.size();
-
-                if (chunkSize > 0) {
-
-                    float* cloud_pts = (float*)(mFusedPC.chunks[c].vertices.data());
-
-                    memcpy(ptCloudPtr, cloud_pts, 4 * chunkSize * sizeof(float));
-
-                    ptCloudPtr += 4 * chunkSize;
+                if (fusedCloudSubnumber == 0) 
+                {
+                    return;
                 }
 
-            } else {
-                index += mFusedPC.chunks[c].vertices.size();
-            }
-        }
+                std::lock_guard<std::mutex> lock(mCloseZedMutex);
 
-        std::chrono::steady_clock::time_point end_time = std::chrono::steady_clock::now();
+                if (!mZed.isOpened()) 
+                {
+                    return;
+                }
 
-        //ROS_INFO_STREAM("Updated: " << updated);
+                mPointcloudFusedMsg->header.stamp = mFrameTimestamp;
+                mZed.requestSpatialMapAsync();
+
+                while (mZed.getSpatialMapRequestStatusAsync() == sl::ERROR_CODE_FAILURE) 
+                {
+                    //Mesh is still generating
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                }
+
+                sl::ERROR_CODE res = mZed.retrieveSpatialMapAsync(mFusedPC);
+
+                if (res != sl::SUCCESS) {
+                    ROS_WARN_STREAM("Fused point cloud not extracted: " << sl::toString(res).c_str());
+                    return;
+                }
+
+                size_t ptsCount = mFusedPC.getNumberOfPoints();
+                bool resized = false;
+
+                if (mPointcloudFusedMsg->width != ptsCount || mPointcloudFusedMsg->height != 1) 
+                {
+                    // Initialize Point Cloud message
+                    // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
+                    mPointcloudFusedMsg->header.frame_id = mWorldFrameId; // Set the header values of the ROS message
+
+                    mPointcloudFusedMsg->is_bigendian = false;
+                    mPointcloudFusedMsg->is_dense = false;
+
+                    mPointcloudFusedMsg->width = ptsCount;
+                    mPointcloudFusedMsg->height = 1;
+
+                    sensor_msgs::PointCloud2Modifier modifier(*mPointcloudFusedMsg);
+                    modifier.setPointCloud2Fields(4,
+                                                  "x", 1, sensor_msgs::PointField::FLOAT32,
+                                                  "y", 1, sensor_msgs::PointField::FLOAT32,
+                                                  "z", 1, sensor_msgs::PointField::FLOAT32,
+                                                  "rgb", 1, sensor_msgs::PointField::FLOAT32);
+
+                    resized = true;
+                }
+
+                std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
+
+                //ROS_INFO_STREAM("Chunks: " << mFusedPC.chunks.size());
+
+                int index = 0;
+                float* ptCloudPtr = (float*)(&mPointcloudFusedMsg->data[0]);
+                int updated = 0;
+
+                for (int c = 0; c < mFusedPC.chunks.size(); c++) 
+                {
+                    if (mFusedPC.chunks[c].has_been_updated || resized) 
+                    {
+                        updated++;
+
+                        size_t chunkSize = mFusedPC.chunks[c].vertices.size();
+
+                        if (chunkSize > 0) 
+                        {
+
+                            float* cloud_pts = (float*)(mFusedPC.chunks[c].vertices.data());
+
+                            memcpy(ptCloudPtr, cloud_pts, 4 * chunkSize * sizeof(float));
+
+                            ptCloudPtr += 4 * chunkSize;
+                        }
+
+                    } 
+                    else 
+                    {
+                        index += mFusedPC.chunks[c].vertices.size();
+                    }
+                }
+
+                std::chrono::steady_clock::time_point end_time = std::chrono::steady_clock::now();
+
+                //ROS_INFO_STREAM("Updated: " << updated);
 
 
-        double elapsed_usec = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
+                double elapsed_usec = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
 
 
-        //        ROS_INFO_STREAM("Data copy: " << elapsed_usec << " usec [" << ptsCount << "] - " << (static_cast<double>
-        //                        (ptsCount) / elapsed_usec) << " pts/usec");
+                //        ROS_INFO_STREAM("Data copy: " << elapsed_usec << " usec [" << ptsCount << "] - " << (static_cast<double>
+                //                        (ptsCount) / elapsed_usec) << " pts/usec");
 
-        // Pointcloud publishing
-        mPubFusedCloud.publish(mPointcloudFusedMsg);
-#endif
+                // Pointcloud publishing
+                mPubFusedCloud.publish(mPointcloudFusedMsg);
+        #endif
     }
 
     void ZEDWrapperNodelet::publishCamInfo(sensor_msgs::CameraInfoPtr camInfoMsg,
-                                           ros::Publisher pubCamInfo, ros::Time t) {
+                                           ros::Publisher pubCamInfo, ros::Time t) 
+    {
         static int seq = 0;
         camInfoMsg->header.stamp = t;
         camInfoMsg->header.seq = seq;
@@ -1660,13 +1847,17 @@ namespace zed_wrapper {
 
     void ZEDWrapperNodelet::fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr leftCamInfoMsg,
                                         sensor_msgs::CameraInfoPtr rightCamInfoMsg, string leftFrameId,
-                                        string rightFrameId, bool rawParam /*= false*/) {
+                                        string rightFrameId, bool rawParam /*= false*/) 
+    {
         sl::CalibrationParameters zedParam;
 
-        if (rawParam) {
+        if (rawParam) 
+        {
             zedParam = zed.getCameraInformation(sl::Resolution(mMatWidth, mMatHeight))
                        .calibration_parameters_raw;
-        } else {
+        } 
+        else 
+        {
             zedParam = zed.getCameraInformation(sl::Resolution(mMatWidth, mMatHeight))
                        .calibration_parameters;
         }
@@ -1703,17 +1894,20 @@ namespace zed_wrapper {
         leftCamInfoMsg->R.fill(0.0);
         rightCamInfoMsg->R.fill(0.0);
 
-        for (size_t i = 0; i < 3; i++) {
+        for (size_t i = 0; i < 3; i++) 
+        {
             // identity
             rightCamInfoMsg->R[i + i * 3] = 1;
             leftCamInfoMsg->R[i + i * 3] = 1;
         }
 
-        if (rawParam) {
+        if (rawParam) 
+        {
             std::vector<float> R_ = sl_tools::convertRodrigues(zedParam.R);
             float* p = R_.data();
 
-            for (int i = 0; i < 9; i++) {
+            for (int i = 0; i < 9; i++) 
+            {
                 rightCamInfoMsg->R[i] = p[i];
             }
         }
@@ -1738,9 +1932,10 @@ namespace zed_wrapper {
         rightCamInfoMsg->header.frame_id = rightFrameId;
     }
 
-    void ZEDWrapperNodelet::dynamicReconfCallback(zed_wrapper::ZedConfig& config,
-            uint32_t level) {
-        switch (level) {
+    void ZEDWrapperNodelet::dynamicReconfCallback(zed_wrapper::ZedConfig& config, uint32_t level) 
+    {
+        switch (level) 
+        {
         case 0:
             mCamMatResizeFactor = config.mat_resize_factor;
             NODELET_INFO("Reconfigure mat_resize_factor: %g", mCamMatResizeFactor);
@@ -1799,7 +1994,8 @@ namespace zed_wrapper {
         }
     }
 
-    void ZEDWrapperNodelet::pathPubCallback(const ros::TimerEvent& e) {
+    void ZEDWrapperNodelet::pathPubCallback(const ros::TimerEvent& e) 
+    {
         uint32_t mapPathSub = mPubMapPath.getNumSubscribers();
         uint32_t odomPathSub = mPubOdomPath.getNumSubscribers();
 
@@ -1833,8 +2029,10 @@ namespace zed_wrapper {
         mapPose.pose.orientation.w = base2map.rotation.w;
 
         // Circular vector
-        if (mPathMaxCount != -1) {
-            if (mOdomPath.size() == mPathMaxCount) {
+        if (mPathMaxCount != -1) 
+        {
+            if (mOdomPath.size() == mPathMaxCount) 
+            {
                 NODELET_DEBUG("Path vectors full: rotating ");
                 std::rotate(mOdomPath.begin(), mOdomPath.begin() + 1, mOdomPath.end());
                 std::rotate(mMapPath.begin(), mMapPath.begin() + 1, mMapPath.end());
@@ -1846,13 +2044,16 @@ namespace zed_wrapper {
                 mMapPath.push_back(mapPose);
                 mOdomPath.push_back(odomPose);
             }
-        } else {
+        } 
+        else 
+        {
             //NODELET_DEBUG_STREAM("No limit path vectors, adding last available poses");
             mMapPath.push_back(mapPose);
             mOdomPath.push_back(odomPose);
         }
 
-        if (mapPathSub > 0) {
+        if (mapPathSub > 0) 
+        {
             nav_msgs::Path mapPath;
             mapPath.header.frame_id = mWorldFrameId;
             mapPath.header.stamp = mFrameTimestamp;
@@ -1861,7 +2062,8 @@ namespace zed_wrapper {
             mPubMapPath.publish(mapPath);
         }
 
-        if (odomPathSub > 0) {
+        if (odomPathSub > 0) 
+        {
             nav_msgs::Path odomPath;
             odomPath.header.frame_id = mWorldFrameId;
             odomPath.header.stamp = mFrameTimestamp;
@@ -1871,46 +2073,60 @@ namespace zed_wrapper {
         }
     }
 
-    void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent& e) {
+    void ZEDWrapperNodelet::imuPubCallback(const ros::TimerEvent& e) 
+    {
 
-        if (mStreaming) {
+        if (mStreaming) 
+        {
             return;
         }
 
         std::lock_guard<std::mutex> lock(mCloseZedMutex);
 
-        if (!mZed.isOpened()) {
+        if (!mZed.isOpened()) 
+        {
             return;
         }
 
         uint32_t imu_SubNumber = mPubImu.getNumSubscribers();
         uint32_t imu_RawSubNumber = mPubImuRaw.getNumSubscribers();
 
-        if (imu_SubNumber < 1 && imu_RawSubNumber < 1) {
+        if (imu_SubNumber < 1 && imu_RawSubNumber < 1) 
+        {
             return;
         }
 
         ros::Time t;
 
-        if (mSvoMode) {
+        if (mSvoMode) 
+        {
             t = ros::Time::now();
-        } else {
-            if (mImuTimestampSync && mGrabActive) {
+        } 
+        else 
+        {
+            if (mImuTimestampSync && mGrabActive) 
+            {
                 t = mFrameTimestamp;
-            } else {
+            } 
+            else 
+            {
                 t = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE_CURRENT));
             }
         }
 
         sl::IMUData imu_data;
 
-        if (mImuTimestampSync && mGrabActive) {
+        if (mImuTimestampSync && mGrabActive) 
+        {
             mZed.getIMUData(imu_data, sl::TIME_REFERENCE_IMAGE);
-        } else {
+        } 
+        else 
+        {
             mZed.getIMUData(imu_data, sl::TIME_REFERENCE_CURRENT);
         }
 
-        if (imu_SubNumber > 0 || imu_RawSubNumber > 0) {
+        if (imu_SubNumber > 0 || imu_RawSubNumber > 0) 
+        {
             // Publish freq calculation
             static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
             std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
@@ -1921,11 +2137,14 @@ namespace zed_wrapper {
             mImuPeriodMean_usec->addValue(elapsed_usec);
 
             mImuPublishing = true;
-        } else {
+        } 
+        else 
+        {
             mImuPublishing = false;
         }
 
-        if (imu_SubNumber > 0) {
+        if (imu_SubNumber > 0) 
+        {
             sensor_msgs::Imu imu_msg;
             imu_msg.header.stamp = t;
             imu_msg.header.frame_id = mImuFrameId;
@@ -1943,7 +2162,8 @@ namespace zed_wrapper {
             imu_msg.linear_acceleration.y = mSignY * imu_data.linear_acceleration[mIdxY];
             imu_msg.linear_acceleration.z = mSignZ * imu_data.linear_acceleration[mIdxZ];
 
-            for (int i = 0; i < 3; ++i) {
+            for (int i = 0; i < 3; ++i) 
+            {
 
                 int r = 0;
 
@@ -1980,7 +2200,8 @@ namespace zed_wrapper {
             mPubImu.publish(imu_msg);
         }
 
-        if (imu_RawSubNumber > 0) {
+        if (imu_RawSubNumber > 0) 
+        {
             sensor_msgs::Imu imu_raw_msg;
             imu_raw_msg.header.stamp = mFrameTimestamp; // t;
             imu_raw_msg.header.frame_id = mImuFrameId;
@@ -1994,7 +2215,8 @@ namespace zed_wrapper {
             imu_raw_msg.linear_acceleration.z =
                 mSignZ * imu_data.linear_acceleration[mIdxZ];
 
-            for (int i = 0; i < 3; ++i) {
+            for (int i = 0; i < 3; ++i) 
+            {
 
                 int r = 0;
 
@@ -2027,7 +2249,8 @@ namespace zed_wrapper {
         }
 
         // Publish IMU tf only if enabled
-        if (mPublishTf) {
+        if (mPublishTf) 
+        {
             // Camera to pose transform from TF buffer
             tf2::Transform cam_to_pose;
 
@@ -2070,7 +2293,8 @@ namespace zed_wrapper {
         }
     }
 
-    void ZEDWrapperNodelet::device_poll_thread_func() {
+    void ZEDWrapperNodelet::device_poll_thread_func() 
+    {
         ros::Rate loop_rate(mCamFrameRate);
 
         mRecording = false;
@@ -2116,7 +2340,8 @@ namespace zed_wrapper {
         sl::Mat leftZEDMat, rightZEDMat, depthZEDMat, disparityZEDMat, confImgZEDMat, confMapZEDMat;
 
         // Main loop
-        while (mNhNs.ok()) {
+        while (mNhNs.ok()) 
+        {
             std::chrono::steady_clock::time_point start_elab = std::chrono::steady_clock::now();
 
             // Check for subscribers
@@ -2460,14 +2685,14 @@ namespace zed_wrapper {
                         sl::Translation translation = deltaOdom.getTranslation();
                         sl::Orientation quat = deltaOdom.getOrientation();
 
-#if 0
-                        NODELET_DEBUG("delta ODOM [%s] - %.2f,%.2f,%.2f %.2f,%.2f,%.2f,%.2f",
-                                      sl::toString(mTrackingStatus).c_str(),
-                                      translation(mIdxX), translation(mIdxY), translation(mIdxZ),
-                                      quat(mIdxX), quat(mIdxY), quat(mIdxZ), quat(3));
+                        #if 0
+                                                NODELET_DEBUG("delta ODOM [%s] - %.2f,%.2f,%.2f %.2f,%.2f,%.2f,%.2f",
+                                                              sl::toString(mTrackingStatus).c_str(),
+                                                              translation(mIdxX), translation(mIdxY), translation(mIdxZ),
+                                                              quat(mIdxX), quat(mIdxY), quat(mIdxZ), quat(3));
 
-                        NODELET_DEBUG_STREAM("ODOM -> Tracking Status: " << sl::toString(mTrackingStatus));
-#endif
+                                                NODELET_DEBUG_STREAM("ODOM -> Tracking Status: " << sl::toString(mTrackingStatus));
+                        #endif
 
                         if (mTrackingStatus == sl::TRACKING_STATE_OK || mTrackingStatus == sl::TRACKING_STATE_SEARCHING ||
                             mTrackingStatus == sl::TRACKING_STATE_FPS_TOO_LOW) {
@@ -2503,15 +2728,15 @@ namespace zed_wrapper {
                                 mOdom2BaseTransf.setRotation(quat_2d);
                             }
 
-#if 0 //#ifndef NDEBUG // Enable for TF checking
-                            double roll, pitch, yaw;
-                            tf2::Matrix3x3(mOdom2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
+                            #if 0 //#ifndef NDEBUG // Enable for TF checking
+                                                        double roll, pitch, yaw;
+                                                        tf2::Matrix3x3(mOdom2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
-                            NODELET_DEBUG("+++ Odometry [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
-                                          mOdometryFrameId.c_str(), mBaseFrameId.c_str(),
-                                          mOdom2BaseTransf.getOrigin().x(), mOdom2BaseTransf.getOrigin().y(), mOdom2BaseTransf.getOrigin().z(),
-                                          roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
-#endif
+                                                        NODELET_DEBUG("+++ Odometry [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
+                                                                      mOdometryFrameId.c_str(), mBaseFrameId.c_str(),
+                                                                      mOdom2BaseTransf.getOrigin().x(), mOdom2BaseTransf.getOrigin().y(), mOdom2BaseTransf.getOrigin().z(),
+                                                                      roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+                            #endif
 
                             // Publish odometry message
                             if (odomSubnumber > 0) {
@@ -2534,18 +2759,18 @@ namespace zed_wrapper {
                     sl::Translation translation = mLastZedPose.getTranslation();
                     sl::Orientation quat = mLastZedPose.getOrientation();
 
-#if 0 //#ifndef NDEBUG // Enable for TF checking
-                    double roll, pitch, yaw;
-                    tf2::Matrix3x3(tf2::Quaternion(quat.ox, quat.oy, quat.oz, quat.ow)).getRPY(roll, pitch, yaw);
+                    #if 0 //#ifndef NDEBUG // Enable for TF checking
+                                        double roll, pitch, yaw;
+                                        tf2::Matrix3x3(tf2::Quaternion(quat.ox, quat.oy, quat.oz, quat.ow)).getRPY(roll, pitch, yaw);
 
-                    NODELET_DEBUG("Sensor POSE [%s -> %s] - {%.2f,%.2f,%.2f} {%.2f,%.2f,%.2f}",
-                                  mLeftCamFrameId.c_str(), mMapFrameId.c_str(),
-                                  translation.x, translation.y, translation.z,
-                                  roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+                                        NODELET_DEBUG("Sensor POSE [%s -> %s] - {%.2f,%.2f,%.2f} {%.2f,%.2f,%.2f}",
+                                                      mLeftCamFrameId.c_str(), mMapFrameId.c_str(),
+                                                      translation.x, translation.y, translation.z,
+                                                      roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
 
-                    NODELET_DEBUG_STREAM("MAP -> Tracking Status: " << sl::toString(mTrackingStatus));
+                                        NODELET_DEBUG_STREAM("MAP -> Tracking Status: " << sl::toString(mTrackingStatus));
 
-#endif
+                    #endif
 
                     if (mTrackingStatus == sl::TRACKING_STATE_OK ||
                         mTrackingStatus == sl::TRACKING_STATE_SEARCHING /*|| status == sl::TRACKING_STATE_FPS_TOO_LOW*/) {
@@ -2578,15 +2803,15 @@ namespace zed_wrapper {
                             mMap2BaseTransf.setRotation(quat_2d);
                         }
 
-#if 0 //#ifndef NDEBUG // Enable for TF checking
-                        double roll, pitch, yaw;
-                        tf2::Matrix3x3(mMap2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
+                        #if 0 //#ifndef NDEBUG // Enable for TF checking
+                                                double roll, pitch, yaw;
+                                                tf2::Matrix3x3(mMap2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
-                        NODELET_DEBUG("*** Base POSE [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
-                                      mMapFrameId.c_str(), mBaseFrameId.c_str(),
-                                      mMap2BaseTransf.getOrigin().x(), mMap2BaseTransf.getOrigin().y(), mMap2BaseTransf.getOrigin().z(),
-                                      roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
-#endif
+                                                NODELET_DEBUG("*** Base POSE [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
+                                                              mMapFrameId.c_str(), mBaseFrameId.c_str(),
+                                                              mMap2BaseTransf.getOrigin().x(), mMap2BaseTransf.getOrigin().y(), mMap2BaseTransf.getOrigin().z(),
+                                                              roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+                        #endif
 
                         bool initOdom = false;
 
@@ -2616,15 +2841,15 @@ namespace zed_wrapper {
                             //mMap2OdomTransf = mOdom2BaseTransf.inverse() * mMap2BaseTransf;
                             mMap2OdomTransf = mMap2BaseTransf * mOdom2BaseTransf.inverse();
 
-#if 0 //#ifndef NDEBUG // Enable for TF checking
-                            double roll, pitch, yaw;
-                            tf2::Matrix3x3(mMap2OdomTransf.getRotation()).getRPY(roll, pitch, yaw);
+                            #if 0 //#ifndef NDEBUG // Enable for TF checking
+                                                        double roll, pitch, yaw;
+                                                        tf2::Matrix3x3(mMap2OdomTransf.getRotation()).getRPY(roll, pitch, yaw);
 
-                            NODELET_DEBUG("+++ Diff [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
-                                          mMapFrameId.c_str(), mOdometryFrameId.c_str(),
-                                          mMap2OdomTransf.getOrigin().x(), mMap2OdomTransf.getOrigin().y(), mMap2OdomTransf.getOrigin().z(),
-                                          roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
-#endif
+                                                        NODELET_DEBUG("+++ Diff [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
+                                                                      mMapFrameId.c_str(), mOdometryFrameId.c_str(),
+                                                                      mMap2OdomTransf.getOrigin().x(), mMap2OdomTransf.getOrigin().y(), mMap2OdomTransf.getOrigin().z(),
+                                                                      roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+                            #endif
                         }
 
                         // Publish Pose message
@@ -2653,34 +2878,34 @@ namespace zed_wrapper {
                     }
                 }
 
-#if 0 //#ifndef NDEBUG // Enable for TF checking
-                // Double check: map_to_pose must be equal to mMap2BaseTransf
+                #if 0 //#ifndef NDEBUG // Enable for TF checking
+                                // Double check: map_to_pose must be equal to mMap2BaseTransf
 
-                tf2::Transform map_to_base;
+                                tf2::Transform map_to_base;
 
-                try {
-                    // Save the transformation from base to frame
-                    geometry_msgs::TransformStamped b2m =
-                        mTfBuffer->lookupTransform(mMapFrameId, mBaseFrameId, ros::Time(0));
-                    // Get the TF2 transformation
-                    tf2::fromMsg(b2m.transform, map_to_base);
-                } catch (tf2::TransformException& ex) {
-                    NODELET_DEBUG("The tf from '%s' to '%s' does not seem to be available, "
-                                  "will assume it as identity!",
-                                  mMapFrameId.c_str(), mBaseFrameId.c_str());
-                    NODELET_DEBUG("Transform error: %s", ex.what());
-                }
+                                try {
+                                    // Save the transformation from base to frame
+                                    geometry_msgs::TransformStamped b2m =
+                                        mTfBuffer->lookupTransform(mMapFrameId, mBaseFrameId, ros::Time(0));
+                                    // Get the TF2 transformation
+                                    tf2::fromMsg(b2m.transform, map_to_base);
+                                } catch (tf2::TransformException& ex) {
+                                    NODELET_DEBUG("The tf from '%s' to '%s' does not seem to be available, "
+                                                  "will assume it as identity!",
+                                                  mMapFrameId.c_str(), mBaseFrameId.c_str());
+                                    NODELET_DEBUG("Transform error: %s", ex.what());
+                                }
 
-                double roll, pitch, yaw;
-                tf2::Matrix3x3(map_to_base.getRotation()).getRPY(roll, pitch, yaw);
+                                double roll, pitch, yaw;
+                                tf2::Matrix3x3(map_to_base.getRotation()).getRPY(roll, pitch, yaw);
 
-                NODELET_DEBUG("*** Check [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
-                              mMapFrameId.c_str(), mBaseFrameId.c_str(),
-                              map_to_base.getOrigin().x(), map_to_base.getOrigin().y(), map_to_base.getOrigin().z(),
-                              roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+                                NODELET_DEBUG("*** Check [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
+                                              mMapFrameId.c_str(), mBaseFrameId.c_str(),
+                                              map_to_base.getOrigin().x(), map_to_base.getOrigin().y(), map_to_base.getOrigin().z(),
+                                              roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
 
-                NODELET_DEBUG("*******************************");
-#endif
+                                NODELET_DEBUG("*******************************");
+                #endif
                 std::chrono::steady_clock::time_point end_elab = std::chrono::steady_clock::now();
 
                 double elab_usec = std::chrono::duration_cast<std::chrono::microseconds>(end_elab - start_elab).count();
@@ -2746,11 +2971,15 @@ namespace zed_wrapper {
         NODELET_DEBUG("ZED pool thread finished");
     }
 
-    void ZEDWrapperNodelet::updateDiagnostic(diagnostic_updater::DiagnosticStatusWrapper& stat) {
+    void ZEDWrapperNodelet::updateDiagnostic(diagnostic_updater::DiagnosticStatusWrapper& stat) 
+    {
 
-        if (mConnStatus == sl::SUCCESS) {
-            if (mGrabActive) {
-                if (mGrabStatus == sl::SUCCESS || mGrabStatus == sl::ERROR_CODE_NOT_A_NEW_FRAME) {
+        if (mConnStatus == sl::SUCCESS) 
+        {
+            if (mGrabActive) 
+            {
+                if (mGrabStatus == sl::SUCCESS || mGrabStatus == sl::ERROR_CODE_NOT_A_NEW_FRAME) 
+                {
 
                     stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Camera grabbing");
 
@@ -2781,30 +3010,42 @@ namespace zed_wrapper {
 
                         if (mTrackingActivated) {
                             stat.addf("Tracking status", "%s", sl::toString(mTrackingStatus).c_str());
-                        } else {
+                        } 
+                        else 
+                        {
                             stat.add("Tracking status", "INACTIVE");
                         }
-                    } else {
+                    } 
+                    else 
+                    {
                         stat.add("Depth status", "INACTIVE");
                     }
-                } else {
+                } 
+                else 
+                {
                     stat.summaryf(diagnostic_msgs::DiagnosticStatus::ERROR, "Camera error: %s", sl::toString(mGrabStatus).c_str());
                 }
 
-            } else {
+            } 
+            else 
+            {
                 stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Waiting for data subscriber");
                 stat.add("Capture", "INACTIVE");
             }
 
-            if (mImuPublishing) {
+            if (mImuPublishing) 
+            {
                 double freq = 1000000. / mImuPeriodMean_usec->getMean();
                 double freq_perc = 100.*freq / mImuPubRate;
                 stat.addf("IMU", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
-            } else {
+            } 
+            else 
+            {
                 stat.add("IMU", "Topics not subscribed");
             }
 
-            if (mRecording) {
+            if (mRecording) 
+            {
                 if (!mRecState.status) {
                     if (mGrabActive) {
                         stat.add("SVO Recording", "ERROR");
@@ -2827,17 +3068,20 @@ namespace zed_wrapper {
     }
 
     bool ZEDWrapperNodelet::on_start_svo_recording(zed_wrapper::start_svo_recording::Request& req,
-            zed_wrapper::start_svo_recording::Response& res) {
+            zed_wrapper::start_svo_recording::Response& res) 
+    {
         std::lock_guard<std::mutex> lock(mRecMutex);
 
-        if (mRecording) {
+        if (mRecording) 
+        {
             res.result = false;
             res.info = "Recording was just active";
             return false;
         }
 
         // Check filename
-        if (req.svo_filename.empty()) {
+        if (req.svo_filename.empty()) 
+        {
             req.svo_filename = "zed.svo";
         }
 
@@ -2847,32 +3091,32 @@ namespace zed_wrapper {
         err = mZed.enableRecording(req.svo_filename.c_str(), mSvoComprMode);
 
         if (err == sl::ERROR_CODE_SVO_UNSUPPORTED_COMPRESSION) {
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=7))
-            compression = mSvoComprMode == sl::SVO_COMPRESSION_MODE_HEVC ? sl::SVO_COMPRESSION_MODE_AVCHD :
-                          sl::SVO_COMPRESSION_MODE_HEVC;
+        #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=7))
+                    compression = mSvoComprMode == sl::SVO_COMPRESSION_MODE_HEVC ? sl::SVO_COMPRESSION_MODE_AVCHD :
+                                  sl::SVO_COMPRESSION_MODE_HEVC;
 
-            ROS_WARN_STREAM("The chosen " << sl::toString(mSvoComprMode).c_str() << "mode is not available. Trying " <<
-                            sl::toString(compression).c_str());
+                    ROS_WARN_STREAM("The chosen " << sl::toString(mSvoComprMode).c_str() << "mode is not available. Trying " <<
+                                    sl::toString(compression).c_str());
 
-            err = mZed.enableRecording(req.svo_filename.c_str(), compression);
+                    err = mZed.enableRecording(req.svo_filename.c_str(), compression);
 
-            if (err == sl::ERROR_CODE_SVO_UNSUPPORTED_COMPRESSION) {
-                ROS_WARN_STREAM(sl::toString(compression).c_str() << "not available. Trying " << sl::toString(
-                                    sl::SVO_COMPRESSION_MODE_LOSSY).c_str());
-                compression = sl::SVO_COMPRESSION_MODE_LOSSY;
-                err = mZed.enableRecording(req.svo_filename.c_str(), compression);  // JPEG Compression?
-
-
-#else
-            compression = mSvoComprMode == sl::SVO_COMPRESSION_MODE_LOSSY ? sl::SVO_COMPRESSION_MODE_LOSSLESS :
-                          sl::SVO_COMPRESSION_MODE_LOSSY;
-
-            ROS_WARN_STREAM("The chosen " << sl::toString(mSvoComprMode).c_str() << "mode is not available. Trying " <<
-                            sl::toString(compression).c_str());
+                    if (err == sl::ERROR_CODE_SVO_UNSUPPORTED_COMPRESSION) {
+                        ROS_WARN_STREAM(sl::toString(compression).c_str() << "not available. Trying " << sl::toString(
+                                            sl::SVO_COMPRESSION_MODE_LOSSY).c_str());
+                        compression = sl::SVO_COMPRESSION_MODE_LOSSY;
+                        err = mZed.enableRecording(req.svo_filename.c_str(), compression);  // JPEG Compression?
 
 
-            err = mZed.enableRecording(req.svo_filename.c_str(), compression);
-#endif
+        #else
+                    compression = mSvoComprMode == sl::SVO_COMPRESSION_MODE_LOSSY ? sl::SVO_COMPRESSION_MODE_LOSSLESS :
+                                  sl::SVO_COMPRESSION_MODE_LOSSY;
+
+                    ROS_WARN_STREAM("The chosen " << sl::toString(mSvoComprMode).c_str() << "mode is not available. Trying " <<
+                                    sl::toString(compression).c_str());
+
+
+                    err = mZed.enableRecording(req.svo_filename.c_str(), compression);
+        #endif
 
                 if (err == sl::ERROR_CODE_SVO_UNSUPPORTED_COMPRESSION) {
                     compression = sl::SVO_COMPRESSION_MODE_RAW;
@@ -2881,7 +3125,8 @@ namespace zed_wrapper {
             }
         }
 
-        if (err != sl::SUCCESS) {
+        if (err != sl::SUCCESS) 
+        {
             res.result = false;
             res.info = sl::toString(err).c_str();
             mRecording = false;
@@ -2901,10 +3146,12 @@ namespace zed_wrapper {
     }
 
     bool ZEDWrapperNodelet::on_stop_svo_recording(zed_wrapper::stop_svo_recording::Request& req,
-            zed_wrapper::stop_svo_recording::Response& res) {
+            zed_wrapper::stop_svo_recording::Response& res) 
+    {
         std::lock_guard<std::mutex> lock(mRecMutex);
 
-        if (!mRecording) {
+        if (!mRecording) 
+        {
             res.done = false;
             res.info = "Recording was not active";
             return false;
@@ -2921,126 +3168,130 @@ namespace zed_wrapper {
     }
 
     bool ZEDWrapperNodelet::on_start_remote_stream(zed_wrapper::start_remote_stream::Request& req,
-            zed_wrapper::start_remote_stream::Response& res) {
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
+            zed_wrapper::start_remote_stream::Response& res) 
+    {
+        #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
 
-        if (mStreaming) {
-            res.result = false;
-            res.info = "SVO remote streaming was just active";
-            return false;
-        }
+                if (mStreaming) {
+                    res.result = false;
+                    res.info = "SVO remote streaming was just active";
+                    return false;
+                }
 
-        sl::StreamingParameters params;
-        params.codec = static_cast<sl::STREAMING_CODEC>(req.codec);
-        params.port = req.port;
-        params.bitrate = req.bitrate;
-        params.gop_size = req.gop_size;
-        params.adaptative_bitrate = req.adaptative_bitrate;
+                sl::StreamingParameters params;
+                params.codec = static_cast<sl::STREAMING_CODEC>(req.codec);
+                params.port = req.port;
+                params.bitrate = req.bitrate;
+                params.gop_size = req.gop_size;
+                params.adaptative_bitrate = req.adaptative_bitrate;
 
-        if (params.gop_size < -1 || params.gop_size > 256) {
+                if (params.gop_size < -1 || params.gop_size > 256) {
 
-            mStreaming = false;
+                    mStreaming = false;
 
-            res.result = false;
-            res.info = "`gop_size` wrong (";
-            res.info += params.gop_size;
-            res.info += "). Remote streaming not started";
+                    res.result = false;
+                    res.info = "`gop_size` wrong (";
+                    res.info += params.gop_size;
+                    res.info += "). Remote streaming not started";
 
-            ROS_ERROR_STREAM(res.info);
-            return false;
-        }
+                    ROS_ERROR_STREAM(res.info);
+                    return false;
+                }
 
-        if (params.port % 2 != 0) {
-            mStreaming = false;
+                if (params.port % 2 != 0) {
+                    mStreaming = false;
 
-            res.result = false;
-            res.info = "`port` must be an even number. Remote streaming not started";
+                    res.result = false;
+                    res.info = "`port` must be an even number. Remote streaming not started";
 
-            ROS_ERROR_STREAM(res.info);
-            return false;
-        }
+                    ROS_ERROR_STREAM(res.info);
+                    return false;
+                }
 
-        sl::ERROR_CODE err = mZed.enableStreaming(params);
+                sl::ERROR_CODE err = mZed.enableStreaming(params);
 
-        if (err != sl::SUCCESS) {
-            mStreaming = false;
+                if (err != sl::SUCCESS) {
+                    mStreaming = false;
 
-            res.result = false;
-            res.info = sl::toString(err).c_str();
+                    res.result = false;
+                    res.info = sl::toString(err).c_str();
 
-            ROS_ERROR_STREAM("Remote streaming not started (" << res.info << ")");
+                    ROS_ERROR_STREAM("Remote streaming not started (" << res.info << ")");
 
-            return false;
-        }
+                    return false;
+                }
 
-        mStreaming = true;
+                mStreaming = true;
 
-        ROS_INFO_STREAM("Remote streaming STARTED");
+                ROS_INFO_STREAM("Remote streaming STARTED");
 
-        res.result = true;
-        res.info = "Remote streaming STARTED";
-        return true;
-#else
-        ROS_WARN("Remote streaming requires the ZED SDK v2.8 or newer");
+                res.result = true;
+                res.info = "Remote streaming STARTED";
+                return true;
+        #else
+                ROS_WARN("Remote streaming requires the ZED SDK v2.8 or newer");
 
-        res.result = false;
-        res.info = "Remote streaming requires the ZED SDK v2.8 or newer";
-        return true;
-#endif
+                res.result = false;
+                res.info = "Remote streaming requires the ZED SDK v2.8 or newer";
+                return true;
+        #endif
     }
 
     bool ZEDWrapperNodelet::on_stop_remote_stream(zed_wrapper::stop_remote_stream::Request& req,
-            zed_wrapper::stop_remote_stream::Response& res) {
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
+            zed_wrapper::stop_remote_stream::Response& res) 
+    {
+        #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
 
-        if (mStreaming) {
-            mZed.disableStreaming();
-        }
+                if (mStreaming) {
+                    mZed.disableStreaming();
+                }
 
-        mStreaming = false;
+                mStreaming = false;
 
-        ROS_INFO_STREAM("SVO remote streaming STOPPED");
-#endif
+                ROS_INFO_STREAM("SVO remote streaming STOPPED");
+        #endif
         res.done = true;
 
         return true;
     }
 
     bool ZEDWrapperNodelet::on_set_led_status(zed_wrapper::set_led_status::Request& req,
-            zed_wrapper::set_led_status::Response& res) {
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
+            zed_wrapper::set_led_status::Response& res) 
+    {
+        #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
 
-        if (mFwVersion < 1523) {
-            ROS_WARN_STREAM("To set the status of the blue LED the camera must be updated to FW 1523 or newer");
-            return false;
-        }
+                if (mFwVersion < 1523) {
+                    ROS_WARN_STREAM("To set the status of the blue LED the camera must be updated to FW 1523 or newer");
+                    return false;
+                }
 
-        mZed.setCameraSettings(sl::CAMERA_SETTINGS_LED_STATUS, req.led_enabled ? 1 : 0);
+                mZed.setCameraSettings(sl::CAMERA_SETTINGS_LED_STATUS, req.led_enabled ? 1 : 0);
 
-        return true;
-#else
-        ROS_WARN("LED control requires the ZED SDK v2.8 or newer");
-        return false;
-#endif
+                return true;
+        #else
+                ROS_WARN("LED control requires the ZED SDK v2.8 or newer");
+                return false;
+        #endif
     }
 
     bool ZEDWrapperNodelet::on_toggle_led(zed_wrapper::toggle_led::Request& req,
-                                          zed_wrapper::toggle_led::Response& res) {
-#if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
+                                          zed_wrapper::toggle_led::Response& res) 
+    {
+        #if ((ZED_SDK_MAJOR_VERSION>2) || (ZED_SDK_MAJOR_VERSION==2 && ZED_SDK_MINOR_VERSION>=8) )
 
-        if (mFwVersion < 1523) {
-            ROS_WARN_STREAM("To set the status of the blue LED the camera must be updated to FW 1523 or newer");
-            return false;
-        }
+                if (mFwVersion < 1523) {
+                    ROS_WARN_STREAM("To set the status of the blue LED the camera must be updated to FW 1523 or newer");
+                    return false;
+                }
 
-        int status = mZed.getCameraSettings(sl::CAMERA_SETTINGS_LED_STATUS);
-        int new_status = status == 0 ? 1 : 0;
-        mZed.setCameraSettings(sl::CAMERA_SETTINGS_LED_STATUS, new_status);
+                int status = mZed.getCameraSettings(sl::CAMERA_SETTINGS_LED_STATUS);
+                int new_status = status == 0 ? 1 : 0;
+                mZed.setCameraSettings(sl::CAMERA_SETTINGS_LED_STATUS, new_status);
 
-        return (new_status == 1);
-#else
-        ROS_WARN("LED control requires the ZED SDK v2.8 or newer");
-        return false;
-#endif
+                return (new_status == 1);
+        #else
+                ROS_WARN("LED control requires the ZED SDK v2.8 or newer");
+                return false;
+        #endif
     }
 } // namespace

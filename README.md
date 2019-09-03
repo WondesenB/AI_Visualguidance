@@ -28,11 +28,14 @@
 	Then modify 
 	/AI_Visualguidance/darknet_ros/darknet_ros/config/yolov3_custom.yaml 
 
-## launch local_mapping package
+## launch local_mapping node
 
  	roslaunch local_mapping local_mapping.launch
+
 ## launch mission node
-        rosrun mission  mission_node      
+
+ 	rosrun mission mission_node	
+
 ## All node launch
 
       roslaunch ai_drone ai_drone.launch

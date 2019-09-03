@@ -1,0 +1,12 @@
+/home/usdlb/Desktop/darknet_custom/data/images/0114.jpg
+/home/usdlb/Desktop/darknet_custom/data/images/0133.jpg
+/home/usdlb/Desktop/darknet_custom/data/images/0104.jpg
+/home/usdlb/Desktop/darknet_custom/data/images/0111.jpg
+/home/usdlb/Desktop/darknet_custom/data/images/0022.jpg
+/home/usdlb/Desktop/darknet_custom/data/images/0018.jpg
+/home/usdlb/Desktop/darknet_custom/data/images/0004.jpg
+/home/usdlb/Desktop/darknet_custom/data/images/0025.jpg
+/home/usdlb/Desktop/darknet_custom/data/images/0012.jpg
+/home/usdlb/Desktop/darknet_custom/data/images/0073.jpg
+/home/usdlb/Desktop/darknet_custom/data/images/0053.jpg
+/home/usdlb/Desktop/darknet_custom/data/images/0031.jpg

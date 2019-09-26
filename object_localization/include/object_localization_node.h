@@ -7,11 +7,7 @@
 #include <geometry_msgs/Vector3Stamped.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/PointCloud2.h>
-//cloudpoint libraries
-#include <pcl_ros/point_cloud.h>
-#include <pcl/point_types.h>
-#include <pcl/point_cloud.h>
-#include <pcl_conversions/pcl_conversions.h>
+
 // darknet_ros_msgs
 #include <darknet_ros_msgs/BoundingBoxes.h>
 #include <darknet_ros_msgs/BoundingBox.h>
@@ -59,6 +55,20 @@ double roll, pitch, yaw;
 
 float X, Y, Z;
 
+//=== data holder for median filter =====
+struct xyz
+{
+  float x;
+  float y;
+  float z;
+};
+struct samples
+{
+  vector<xyz> pointCL_xyz;
+  vector<xyz> pointCL_xyz_sorted;
+}val;
+//==================
+
 struct objects_boundbox
 {
 string name;
@@ -94,6 +104,7 @@ vector<objects_> object;
 
 
 void zed2dronebase_transform (void);
+void median_filter(vector<xyz> & vv,vector <xyz>& ww, float x_in, float y_in, float z_in, float& x_out, float& y_out, float& z_out);
 
 namespace tf2
 {

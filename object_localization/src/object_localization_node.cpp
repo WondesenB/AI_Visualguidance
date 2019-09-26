@@ -70,6 +70,7 @@ void pixelTo3DXYZ_callback(const sensor_msgs::PointCloud2 pointCL)
 
      
      objects_bbox* obb = &obx;
+
      // objects* obo = &ob;
      int arrayPosition;
      int arrayPosX  ; // X has an offset of 0
@@ -338,4 +339,55 @@ void zed2dronebase_transform (void)
   static_transformStamped.transform.rotation.z = quat.z();
   static_transformStamped.transform.rotation.w = quat.w();
   static_broadcaster.sendTransform(static_transformStamped);
+}
+
+void median_filter(vector<xyz> & vv,vector <xyz>& ww, float x_in, float y_in, float z_in, float& x_out, float& y_out, float& z_out)
+{
+  float temp;
+  int N = vv.size();
+  for (int r=0;r<=(N-2);r++)
+  {
+    vv[r]=vv[r+1];  
+  }
+  vv.erase(vv.end()-1);
+  vv.push_back({x_in,y_in,z_in});
+
+  
+  ww.clear();
+  for(int bb=0;bb<N;bb++)
+  {
+    ww.push_back(vv[bb]); 
+  }
+    
+  for(int k=0;k<=(N-2);k++)
+  {
+     for (int q=0;q<=(N-(k+2));q++)
+     {
+      if (ww[q].x > ww[q+1].x)
+      {
+                  temp =ww[q].x;
+                  ww[q].x=ww[q+1].x;
+                  ww[q+1].x=temp;
+      }
+      if (ww[q].y > ww[q+1].y)
+      {
+                  temp =ww[q].y;
+                  ww[q].y=ww[q+1].y;
+                  ww[q+1].y=temp;
+      }
+      if (ww[q].z > ww[q+1].z)
+      {
+                  temp =ww[q].z;
+                  ww[q].z=ww[q+1].z;
+                  ww[q+1].z=temp;
+      }      
+
+     }
+        
+  }
+    x_out = ww[N/2].x;
+    y_out = ww[N/2].y;
+    z_out = ww[N/2].z;
+   
+
 }

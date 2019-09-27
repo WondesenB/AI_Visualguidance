@@ -56,6 +56,7 @@ double roll, pitch, yaw;
 float X, Y, Z;
 
 //=== data holder for median filter =====
+float U, V, W;
 struct xyz
 {
   float x;

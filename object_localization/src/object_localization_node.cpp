@@ -150,7 +150,15 @@ void pixelTo3DXYZ_callback(const sensor_msgs::PointCloud2 pointCL)
 
      if (std::isfinite(X) && std::isfinite(Y) && std::isfinite(Z) )
      {
-      ob.object.push_back({obb->obj[i].name.c_str(),Yymin,Zzmin,X,Y,Z,dis,area});
+      if(val.pointCL_xyz.size()<=50)
+      {
+      val.pointCL_xyz.push_back({X,Y,Z});
+      }
+      else
+      {
+      median_filter(val.pointCL_xyz,val.pointCL_xyz_sorted,X,Y,Z,U,V,W);
+      ob.object.push_back({obb->obj[i].name.c_str(),Yymin,Zzmin,U,V,W,dis,area});
+      }
      } 
       // ROS_INFO("%s Y_min is @ (%f,%f)",obb->obj[i].name.c_str(),obb->obj[i].u_min,obb->obj[i].v_c);   
       // ROS_INFO("detected object info,name = %s , XYZ = (%f,%f,%f) , Y_min = %f, distance = %f ",

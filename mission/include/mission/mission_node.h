@@ -92,7 +92,8 @@ float  X;
 float  Y;
 float  Z;
 float  distance;
-float  area;	
+float  area;
+int    detection_count;	
 };
 
 struct detected_objects

@@ -3,6 +3,7 @@
 #include "object_localization_node.h"
 float img_h =0;
 float img_w =0;
+int   detection_count = 0;
 void boundingbox_callback(const darknet_ros_msgs::BoundingBoxes::ConstPtr&  msg)
 {
    
@@ -148,16 +149,22 @@ void pixelTo3DXYZ_callback(const sensor_msgs::PointCloud2 pointCL)
 
       area = (2.0f*abs(Y-Yymin))*(2.0f*abs(Z-Zzmin));
 
+     // This code should be modified for multiple object detection
      if (std::isfinite(X) && std::isfinite(Y) && std::isfinite(Z) )
      {
       if(val.pointCL_xyz.size()<=50)
       {
+      detection_count = detection_count + 1;  
       val.pointCL_xyz.push_back({X,Y,Z});
       }
-      else
+      else 
       {
-      median_filter(val.pointCL_xyz,val.pointCL_xyz_sorted,X,Y,Z,U,V,W);
-      ob.object.push_back({obb->obj[i].name.c_str(),Yymin,Zzmin,U,V,W,dis,area});
+        if (!(detection_count > 1000))
+        {
+         detection_count = detection_count + 1;
+        }
+        median_filter(val.pointCL_xyz,val.pointCL_xyz_sorted,X,Y,Z,U,V,W);
+        ob.object.push_back({obb->obj[i].name.c_str(),Yymin,Zzmin,U,V,W,dis,area,detection_count});
       }
      } 
       // ROS_INFO("%s Y_min is @ (%f,%f)",obb->obj[i].name.c_str(),obb->obj[i].u_min,obb->obj[i].v_c);   
@@ -289,6 +296,7 @@ while(ros::ok() )
     detected_obj_info.Z         = XYZ_out.point.z;
     detected_obj_info.distance  = obb->object[i].distance;
     detected_obj_info.area      =obb->object[i].area;
+    detected_obj_info.detection_count = obb->object[i].detection_count;
     detected_obj.info.push_back(detected_obj_info);
 
     // ROS_INFO("%s  XYZ_map @ (%f, %f, %f), Y_min = %f , Z_min = %f , Distance = %f , Area = %f ",obb->object[i].name.c_str(),
@@ -304,6 +312,7 @@ while(ros::ok() )
     detected_obj_info.Z         = 0.0;
     detected_obj_info.distance  = 0.0;
     detected_obj_info.area      = 0.0;
+    detected_obj_info.detection_count = 0;
     detected_obj.info.push_back(detected_obj_info);
 
   }

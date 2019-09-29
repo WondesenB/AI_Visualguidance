@@ -6,3 +6,4 @@ float32 Y
 float32 Z
 float32 distance
 float32 area
+int32  detection_count

@@ -96,6 +96,7 @@ float  Y;
 float  Z;
 float  distance;
 float  area;
+int    detection_count;
 };
 
 struct objects

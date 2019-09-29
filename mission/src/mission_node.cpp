@@ -53,7 +53,8 @@ void detected_object_cb(const object_localization::detected_object::ConstPtr&  m
       float  Zc         = data.Z;
       float  d          = data.distance;
       float  A          = data.area;
-      dobj.object.push_back({name_.c_str(),Ym,Zm,Xc,Yc,Zc,d,A});
+      int    d_count    = data.detection_count;
+      dobj.object.push_back({name_.c_str(),Ym,Zm,Xc,Yc,Zc,d,A,d_count});
       
       // ROS_INFO("%s center is @ (%f,%f) ",data.Class.c_str(),X_c,Y_c);     
      

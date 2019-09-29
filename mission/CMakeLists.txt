@@ -140,6 +140,7 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME}_node src/mission_node.cpp)
 add_executable(auto_takeoff_land src/auto_takeoff_land.cpp)
+add_executable(mission_window src/mission_window.cpp)
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -150,9 +151,11 @@ add_executable(auto_takeoff_land src/auto_takeoff_land.cpp)
 ## same as for the library above
 add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(auto_takeoff_land ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(mission_window ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_node  ${catkin_LIBRARIES})
 target_link_libraries(auto_takeoff_land  ${catkin_LIBRARIES})
+target_link_libraries(mission_window  ${catkin_LIBRARIES})
 #############
 ## Install ##
 #############

@@ -1,5 +1,0 @@
-classes= 1  
-train  = custom/train.txt  
-valid  = custom/test.txt  
-names = custom/objects.names  
-backup = backup/

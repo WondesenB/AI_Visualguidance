@@ -1,7 +1,0 @@
-/path/oimage223.jpg
-/path/qimage375.jpg
-.
-.
-.
-do for all training images
-
